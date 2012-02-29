@@ -1,0 +1,12 @@
+# #if MODE == "dev"
+content perfectpython content/
+skin perfectpython classic/1.0 skin/
+locale perfectpython en-US locale/en-US/
+
+# #else
+content perfectpython jar:perfectpython.jar!/content/ xpcnativewrappers=yes
+skin perfectpython classic/1.0 jar:perfectpython.jar!/skin/
+locale perfectpython en-US jar:perfectpython.jar!/locale/en-US/
+# #endif
+
+overlay chrome://komodo/content/komodo.xul chrome://perfectpython/content/perfectpython_overlay.xul

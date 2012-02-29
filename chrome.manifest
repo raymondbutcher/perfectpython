@@ -1,0 +1,12 @@
+
+
+
+
+
+
+content perfectpython jar:perfectpython.jar!/content/ xpcnativewrappers=yes
+skin perfectpython classic/1.0 jar:perfectpython.jar!/skin/
+locale perfectpython en-US jar:perfectpython.jar!/locale/en-US/
+
+
+overlay chrome://komodo/content/komodo.xul chrome://perfectpython/content/perfectpython_overlay.xul
