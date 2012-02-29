@@ -8,3 +8,5 @@ tools separately.
 Komodo's built in pylint support does not make use of your project's
 additional import directories, so it keeps complaining about being unable
 to import modules.
+
+Get the latest release from http://community.activestate.com/node/7989
