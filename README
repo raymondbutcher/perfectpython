@@ -1,0 +1,10 @@
+This is an extension for Komodo 7 that adds PEP 8 syntax checking.
+
+I plan to add pyflakes and (hopefully) pylint support, built into the extension.
+
+Komodo's built in support for pyflakes and pylint requires installing these
+tools separately.
+
+Komodo's built in pylint support does not make use of your project's
+additional import directories, so it keeps complaining about being unable
+to import modules.
