@@ -5,7 +5,7 @@ TODO:
     * Define the pep8 MAX_LINE_LENGTH
     * Ignore specific error codes (is it possible to also do this via right-click?)
 
-* Add some log messages / exception handling
+* Add some log messages / exception handling maybe
 
 * Add pylint support
     * Add preferences for enabling/disabling pep8 and pylint
@@ -21,9 +21,10 @@ import StringIO
 import pep8
 import tempfile
 
-from xpcom import components
-from koLintResult import KoLintResult, SEV_WARNING
+from pyflakes.scripts import pyflakes
+from koLintResult import KoLintResult, SEV_ERROR, SEV_WARNING
 from koLintResults import koLintResults
+from xpcom import components
 
 
 log = logging.getLogger("koPerfectPythonLinter")
@@ -33,6 +34,7 @@ class Checker(object):
 
     label = ''
     parse_pattern = None
+    severity = SEV_WARNING
 
     def __init__(self, path, text):
         self.path = path
@@ -53,8 +55,13 @@ class Checker(object):
         for problem in self.parsed():
 
             line = int(problem['line'])
-            column = int(problem['column'])
-            description = '%s%s: %s' % (self.label, problem['code'], problem['description'])
+            column = int(problem.get('column', 1))
+
+            description = ': '.join(part for part in (
+                self.label,
+                problem.get('code', ''),
+                problem.get('description', ''),
+            ) if part)
 
             line_text = self.text[line - 1]
             column_end = len(line_text)
@@ -63,7 +70,7 @@ class Checker(object):
 
             yield KoLintResult(
                 description=description,
-                severity=SEV_WARNING,
+                severity=self.severity,
                 lineStart=line,
                 lineEnd=line,
                 columnStart=column,
@@ -73,7 +80,7 @@ class Checker(object):
 
 class Pep8Checker(Checker):
 
-    label = 'PEP8: '
+    label = 'PEP8'
     parse_pattern = re.compile(r'^.+?:(?P<line>\d+):(?P<column>\d+):\s*(?P<code>[A-Z]\d+)\s*(?P<description>.+)$')
 
     @property
@@ -96,6 +103,31 @@ class Pep8Checker(Checker):
             sys.stdout = stdout
 
 
+class PyflakesChecker(Checker):
+
+    label = 'Pyflakes'
+    parse_pattern = re.compile(r'^.+?:(?P<line>\d+):\s*(?P<description>.+)$')
+    severity = SEV_ERROR
+
+    @property
+    def output(self):
+        stderr, sys.stderr = sys.stderr, StringIO.StringIO()
+        stdout, sys.stdout = sys.stdout, StringIO.StringIO()
+        try:
+
+            pyflakes.checkPath(self.path)
+
+            errors = sys.stderr.getvalue().strip()
+            if errors:
+                return errors
+            else:
+                return sys.stdout.getvalue().strip()
+
+        finally:
+            sys.stderr = stderr
+            sys.stdout = stdout
+
+
 class koPerfectPython(object):
 
     _com_interfaces_ = [components.interfaces.koILinter]
@@ -106,6 +138,8 @@ class koPerfectPython(object):
         ("category-komodo-linter", 'Python'),
     ]
 
+    checker_classes = (Pep8Checker, PyflakesChecker)
+
     def lint(self, request):
         text = request.content.encode(request.encoding.python_encoding_name)
         return self.lint_with_text(request, text)
@@ -115,21 +149,24 @@ class koPerfectPython(object):
         if not text:
             return
 
-        text_lines = text.splitlines(True)
-
         results = koLintResults()
 
-        temp_file_path = tempfile.mkstemp(suffix='.py')[1]
+        temp_file = tempfile.NamedTemporaryFile(
+            mode='w',
+            suffix='.py',
+            delete=False,
+        )
+
         try:
 
-            temp_file = open(temp_file_path, 'w')
             temp_file.write(text)
             temp_file.close()
 
-            pep8_checker = Pep8Checker(temp_file_path, text)
-            pep8_checker.add_to_results(results)
+            for CheckerClass in self.checker_classes:
+                checker = CheckerClass(temp_file.name, text)
+                checker.add_to_results(results)
 
         finally:
-            os.unlink(temp_file_path)
+            os.unlink(temp_file.name)
 
         return results
