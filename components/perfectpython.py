@@ -1,14 +1,16 @@
 """
 Planned features:
 
-* Add preferences
-    * Define the MAX_LINE_LENGTH
-    * Ignore specific error codes (is it possible to also do this via right-click?)
-    * Enable or disable each checker
-        * See if syntax checking is enabled
-        * See if each built-in checker is enabled
+* Pep8
+    * Ignore specific codes
 
-* Add some log messages / exception handling maybe
+* Pylint
+    * Enable/disable
+    * Ignore specific codes
+    * Same max line length option as pep8
+
+* Pyflakes
+    * Enable/disable
 
 """
 
@@ -19,7 +21,7 @@ import sys
 import StringIO
 import tempfile
 
-from koLintResult import KoLintResult, SEV_ERROR, SEV_WARNING
+from koLintResult import getProxiedEffectivePrefs, KoLintResult, SEV_ERROR, SEV_WARNING
 from koLintResults import koLintResults
 from xpcom import components
 
@@ -27,13 +29,30 @@ from xpcom import components
 LOG = logging.getLogger("koPerfectPythonLinter")
 
 
+class PrefSet(object):
+
+    def __init__(self, request, scope):
+        self.prefset = getProxiedEffectivePrefs(request)
+        self.scope = scope
+
+    def get_or_create(self, name, default):
+        if isinstance(default, bool):
+            value_type = 'Boolean'
+        else:
+            value_type = 'String'
+        get_pref = getattr(self.prefset, ('get%sPref' % value_type))
+        return get_pref('perfectpython.%s.%s' % (self.scope, name))
+
+
 class Checker(object):
 
     column_offset = 0
     label = ''
     parse_pattern = None
+    pref_scope = None
 
-    def __init__(self, path, text):
+    def __init__(self, request, path, text):
+        self.request = request
         self.path = path
         self.text = text.splitlines(True)
 
@@ -54,6 +73,12 @@ class Checker(object):
             match = self.parse_pattern.match(line)
             if match:
                 yield match.groupdict()
+
+    @property
+    def preferences(self):
+        if not hasattr(self, '_preferences'):
+            self._preferences = PrefSet(self.request, self.pref_scope)
+        return self._preferences
 
     def results(self):
 
@@ -91,26 +116,43 @@ class Pep8Checker(Checker):
 
     label = 'PEP8'
     parse_pattern = re.compile(r'^.+?:(?P<line>\d+):(?P<column>\d+):\s*(?P<code>[A-Z]\d+)\s*(?P<description>.+)$')
+    pref_scope = 'pep8'
 
     @property
     def output(self):
 
         import pep8
 
-        # Change some settings, but remember the original values.
-        max_line_length, pep8.MAX_LINE_LENGTH = pep8.MAX_LINE_LENGTH, 120
-        stdout, sys.stdout = sys.stdout, StringIO.StringIO()
+        if not self.preferences.get_or_create('enabled', True):
+            return ''
+
+        ignore_codes = []
 
         try:
+            max_line_length = int(self.preferences.get_or_create('maxLineLength', '80'))
+        except ValueError:
+            max_line_length = None
+        if max_line_length:
+            pep8.MAX_LINE_LENGTH = max_line_length
+        else:
+            ignore_codes.append('E501')
 
-            pep8.process_options([self.path, '--repeat', '--ignore', 'none'])
+        options = [self.path, '--repeat']
+
+        if ignore_codes:
+            ignore_codes = ','.join(ignore_codes)
+        else:
+            ignore_codes = 'none'
+        options.extend(('--ignore', ignore_codes))
+
+        stdout, sys.stdout = sys.stdout, StringIO.StringIO()
+        try:
+
+            pep8.process_options(options)
             pep8.input_file(self.path)
             return sys.stdout.getvalue().strip()
 
         finally:
-
-            # Restore the original settings.
-            pep8.MAX_LINE_LENGTH = max_line_length
             sys.stdout = stdout
 
 
@@ -118,6 +160,7 @@ class PyflakesChecker(Checker):
 
     label = 'Pyflakes'
     parse_pattern = re.compile(r'^.+?:(?P<line>\d+):\s*(?P<description>.+)$')
+    pref_scope = 'pyflakes'
 
     @staticmethod
     def get_severity(text):
@@ -150,14 +193,16 @@ class PylintChecker(Checker):
     label = 'Pylint'
     column_offset = 1
     parse_pattern = re.compile(r'^(?P<code>[A-Z]\d+):\s*(?P<line>\d+),(?P<column>\d+):\s*(?P<description>.+)$')
+    pref_scope = 'pylint'
 
     @staticmethod
     def get_ignored_ids():
         return (
-            #'C0103',  # Invalid name
             'C0111',  # Missing docstring
             'C0301',  # Line too long
             'I0011',  # Locally disabling <message-id>
+            'R0903',  # Too few public methods
+            'W0201',  # Attribute defined outside __init__
             'W0703',  # Catching too general exception Exception
         )
 
@@ -201,12 +246,7 @@ class PerfectPython(object):
         ("category-komodo-linter", 'Python'),
     ]
 
-    @staticmethod
-    def get_checker_classes():
-        # Don't bother with PyflakesChecker because Pylint does everything.
-        # When there are user preferences, then it might be good to let people
-        # choose pyflakes instead of pylint.
-        return (Pep8Checker, PylintChecker)
+    checker_classes = (Pep8Checker, PylintChecker)
 
     def lint(self, request):
         text = request.content.encode(request.encoding.python_encoding_name)
@@ -230,11 +270,11 @@ class PerfectPython(object):
             temp_file.write(text)
             temp_file.close()
 
-            for checker_class in self.get_checker_classes():
+            for checker_class in self.checker_classes:
 
                 try:
 
-                    checker = checker_class(temp_file.name, text)
+                    checker = checker_class(request, temp_file.name, text)
                     checker.add_to_results(results)
 
                 except Exception:
