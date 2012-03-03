@@ -1,0 +1,22 @@
+<?xml version="1.0"?> 
+<!DOCTYPE overlay PUBLIC "-//MOZILLA//DTD XUL V1.0//EN" "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" [
+  <!ENTITY % komodoDTD SYSTEM "chrome://komodo/locale/komodo.dtd">
+  %komodoDTD;
+]>
+
+<overlay id="perfectpython_pref_overlay"
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <treeitem container="true" id="syntaxCheckingItem"> 
+        <treechildren id="syntaxCheckingItemChildren" flex="1">
+            <treeitem container="false" id="perfectPythonItem">
+                <treerow>
+                    <treecell class="treecell-indent"
+                              url="chrome://perfectpython/content/preferences.xul"
+                              label="Perfect Python"/>
+                </treerow>
+            </treeitem>
+        </treechildren>
+  </treeitem>
+
+</overlay>

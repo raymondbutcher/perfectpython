@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<!DOCTYPE window SYSTEM "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" [
+  <!ENTITY % prefDTD SYSTEM "chrome://komodo/locale/pref/pref.dtd">
+  %prefDTD;
+]>
+
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/bindings/widgets.css" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/prefs/prefs.css" type="text/css"?>
+
+<window xmlns:html="http://www.w3.org/1999/xhtml"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        class="kodialog"
+        orient="vertical"
+        onload="parent.initPanel()"
+        >
+
+    <script src="chrome://komodo/content/library/trace.js" type="application/x-javascript"/>
+    <script src="chrome://komodo/content/library/logging.js" type="application/x-javascript"/>
+    <script src="chrome://komodo/content/library/dialogs.js" type="application/x-javascript"/>
+    <script src="chrome://komodo/content/library/uriparse.js" type="application/x-javascript;version=1.7"/>
+    <script src="chrome://komodo/content/library/filepickers.js" type="application/x-javascript;version=1.7"/>
+    <script src="chrome://komodo/content/pref/koPrefUtils.js" type="application/x-javascript;version=1.7" />
+    <script src="chrome://komodo/content/library/filepickers.js" type="application/x-javascript;version=1.7" />
+    
+    <script src="chrome://perfectpython/content/preferences.js" type="application/x-javascript"/>
+    
+    <vbox id="perfectpython-properties-prefs-vbox" flex="1" class="autoscroll">
+        
+        <groupbox orient="vertical">
+            <caption label="PEP 8"/>
+            
+            <checkbox
+                id="perfectpython-pep8-enabled"
+                label="Enable PEP 8 Checking"
+                pref="true"
+                prefstring="perfectpython.pep8.enabled"
+                prefattribute="checked"
+            />
+            
+            <hbox align="center">
+                <checkbox
+                    id="perfectpython-pep8-warnLineLength"
+                    label="Warn when lines exceed"
+                    onclick="toggleWarnLineLength(this)"
+                />
+                <textbox
+                    id="perfectpython-pep8-maxLineLength"
+                    size="2"
+                    pref="true"
+                    prefstring="perfectpython.pep8.maxLineLength"
+                    onkeyup="toggleWarnLineLength(this)"
+                />
+                <label value="characters"/>
+            </hbox>
+            
+        </groupbox>
+        <!--
+        <groupbox orient="vertical">
+            <caption label="Pylint"/>
+        </groupbox>
+        
+        <groupbox orient="vertical">
+            <caption label="Pyflakes"/>
+        </groupbox>
+        -->
+    </vbox>
+</window>
