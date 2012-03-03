@@ -5,12 +5,8 @@ Planned features:
     * Ignore specific codes
 
 * Pylint
-    * Enable/disable
     * Ignore specific codes
     * Same max line length option as pep8
-
-* Pyflakes
-    * Enable/disable
 
 """
 
@@ -26,7 +22,7 @@ from koLintResults import koLintResults
 from xpcom import components
 
 
-LOG = logging.getLogger("koPerfectPythonLinter")
+LOG = logging.getLogger("perfectpython")
 
 
 class PrefSet(object):
@@ -36,12 +32,21 @@ class PrefSet(object):
         self.scope = scope
 
     def get_or_create(self, name, default):
+
+        full_name = 'perfectpython.%s.%s' % (self.scope, name)
+
         if isinstance(default, bool):
             value_type = 'Boolean'
         else:
             value_type = 'String'
+
         get_pref = getattr(self.prefset, ('get%sPref' % value_type))
-        return get_pref('perfectpython.%s.%s' % (self.scope, name))
+        try:
+            return get_pref(full_name)
+        except Exception:
+            set_pref = getattr(self.prefset, ('set%sPref' % value_type))
+            set_pref(full_name, default)
+            return default
 
 
 class Checker(object):
@@ -61,8 +66,8 @@ class Checker(object):
             results.addResult(result)
 
     @staticmethod
-    def get_severity(text):
-        return SEV_WARNING
+    def get_severity(code, description):
+        raise NotImplementedError()
 
     @property
     def output(self):
@@ -86,16 +91,16 @@ class Checker(object):
 
             line = int(problem['line'])
             column = int(problem.get('column', 1)) + self.column_offset
-
             code = problem.get('code', '')
+            description = problem.get('description', '')
 
-            description = ': '.join(part for part in (
+            severity = self.get_severity(code, description)
+
+            message = ': '.join(part for part in (
                 self.label,
                 code,
-                problem.get('description', ''),
+                description,
             ) if part)
-
-            severity = self.get_severity(code)
 
             line_text = self.text[line - 1]
             column_end = len(line_text)
@@ -103,7 +108,7 @@ class Checker(object):
                 column = 1
 
             yield KoLintResult(
-                description=description,
+                description=message,
                 severity=severity,
                 lineStart=line,
                 lineEnd=line,
@@ -118,36 +123,42 @@ class Pep8Checker(Checker):
     parse_pattern = re.compile(r'^.+?:(?P<line>\d+):(?P<column>\d+):\s*(?P<code>[A-Z]\d+)\s*(?P<description>.+)$')
     pref_scope = 'pep8'
 
+    def get_ignored_ids(self):
+        ids = []
+        if not self.max_line_length:
+            ids.append('E501')
+        return ids
+
+    @staticmethod
+    def get_severity(code, description):
+        return SEV_WARNING
+
+    @property
+    def max_line_length(self):
+        if not hasattr(self, '_max_line_length'):
+            try:
+                number = int(self.preferences.get_or_create('maxLineLength', '80'))
+            except ValueError:
+                number = None
+            self._max_line_length = number
+        return self._max_line_length
+
     @property
     def output(self):
-
-        import pep8
 
         if not self.preferences.get_or_create('enabled', True):
             return ''
 
-        ignore_codes = []
-
-        try:
-            max_line_length = int(self.preferences.get_or_create('maxLineLength', '80'))
-        except ValueError:
-            max_line_length = None
-        if max_line_length:
-            pep8.MAX_LINE_LENGTH = max_line_length
-        else:
-            ignore_codes.append('E501')
-
         options = [self.path, '--repeat']
 
-        if ignore_codes:
-            ignore_codes = ','.join(ignore_codes)
-        else:
-            ignore_codes = 'none'
-        options.extend(('--ignore', ignore_codes))
+        ignored_ids = self.get_ignored_ids()
+        options.extend(('--ignore', ','.join(ignored_ids) or 'none'))
 
         stdout, sys.stdout = sys.stdout, StringIO.StringIO()
         try:
 
+            import pep8
+            pep8.MAX_LINE_LENGTH = self.max_line_length or 79
             pep8.process_options(options)
             pep8.input_file(self.path)
             return sys.stdout.getvalue().strip()
@@ -163,18 +174,30 @@ class PyflakesChecker(Checker):
     pref_scope = 'pyflakes'
 
     @staticmethod
-    def get_severity(text):
-        return SEV_ERROR
+    def get_severity(code, description):
+        warnings = (
+            'imported but unused',
+            'never used',
+            'redefinition of function',
+            'redefinition of unused',
+        )
+        for phrase in warnings:
+            if phrase in description:
+                return SEV_WARNING
+        else:
+            return SEV_ERROR
 
     @property
     def output(self):
 
-        from pyflakes.scripts import pyflakes
+        if not self.preferences.get_or_create('enabled', False):
+            return ''
 
         stderr, sys.stderr = sys.stderr, StringIO.StringIO()
         stdout, sys.stdout = sys.stdout, StringIO.StringIO()
         try:
 
+            from pyflakes.scripts import pyflakes
             pyflakes.checkPath(self.path)
 
             errors = sys.stderr.getvalue().strip()
@@ -209,7 +232,8 @@ class PylintChecker(Checker):
     @property
     def output(self):
 
-        from pylint import lint
+        if not self.preferences.get_or_create('enabled', True):
+            return ''
 
         options = []
         options.extend(('--disable', ','.join(self.get_ignored_ids())))
@@ -221,6 +245,7 @@ class PylintChecker(Checker):
         stdout, sys.stdout = sys.stdout, StringIO.StringIO()
         try:
 
+            from pylint import lint
             lint.Run(options, exit=False)
             return sys.stdout.getvalue().strip()
 
@@ -228,9 +253,9 @@ class PylintChecker(Checker):
             sys.stdout = stdout
 
     @staticmethod
-    def get_severity(text):
-        for code in ('E', 'F'):
-            if text.startswith(code):
+    def get_severity(code, description):
+        for code_type in ('E', 'F'):
+            if code.startswith(code_type):
                 return SEV_ERROR
         else:
             return SEV_WARNING
@@ -246,7 +271,7 @@ class PerfectPython(object):
         ("category-komodo-linter", 'Python'),
     ]
 
-    checker_classes = (Pep8Checker, PylintChecker)
+    checker_classes = (Pep8Checker, PyflakesChecker, PylintChecker)
 
     def lint(self, request):
         text = request.content.encode(request.encoding.python_encoding_name)

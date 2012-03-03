@@ -33,7 +33,7 @@
             
             <checkbox
                 id="perfectpython-pep8-enabled"
-                label="Enable PEP 8 Checking"
+                label="Enable PEP 8 checking"
                 pref="true"
                 prefstring="perfectpython.pep8.enabled"
                 prefattribute="checked"
@@ -42,7 +42,7 @@
             <hbox align="center">
                 <checkbox
                     id="perfectpython-pep8-warnLineLength"
-                    label="Warn when lines exceed"
+                    label="Warn when line length exceeds"
                     onclick="toggleWarnLineLength(this)"
                 />
                 <textbox
@@ -50,20 +50,51 @@
                     size="2"
                     pref="true"
                     prefstring="perfectpython.pep8.maxLineLength"
+                    prefattribute="value"
                     onkeyup="toggleWarnLineLength(this)"
                 />
                 <label value="characters"/>
             </hbox>
             
         </groupbox>
-        <!--
-        <groupbox orient="vertical">
-            <caption label="Pylint"/>
-        </groupbox>
         
         <groupbox orient="vertical">
             <caption label="Pyflakes"/>
+            
+            <description>
+                Pyflakes checks for some basic problems such as unused imports
+                and syntax errors. While this is a great tool, it is recommended
+                that you instead use Pylint for its greater range of checks.
+            </description>
+            
+            <checkbox
+                id="perfectpython-pyflakes-enabled"
+                label="Enable Pyflakes checking"
+                pref="true"
+                prefstring="perfectpython.pyflakes.enabled"
+                prefattribute="checked"
+            />
+            
         </groupbox>
-        -->
+        
+        <groupbox orient="vertical">
+            <caption label="Pylint"/>
+            
+            <description>
+                The Pylint settings (which errors to display) are currently
+                hardcoded. You can only turn it on or off. More options will
+                be included in a future release!
+            </description>
+            
+            <checkbox
+                id="perfectpython-pylint-enabled"
+                label="Enable Pylint checking"
+                pref="true"
+                prefstring="perfectpython.pylint.enabled"
+                prefattribute="checked"
+            />
+            
+        </groupbox>
+        
     </vbox>
 </window>
