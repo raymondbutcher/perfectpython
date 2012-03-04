@@ -1,15 +1,3 @@
-"""
-Planned features:
-
-* Pep8
-    * Ignore specific codes
-
-* Pylint
-    * Ignore specific codes
-    * Same max line length option as pep8
-
-"""
-
 import logging
 import os
 import tempfile

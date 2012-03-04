@@ -9,6 +9,13 @@
 <?xml-stylesheet href="chrome://komodo/skin/bindings/widgets.css" type="text/css"?>
 <?xml-stylesheet href="chrome://komodo/skin/prefs/prefs.css" type="text/css"?>
 
+
+<?xml-stylesheet href="chrome://komodo/skin/global/global.css" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/codeintel.css" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/tree.css" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/prefs/pref-codeintel.css" type="text/css"?>
+
+
 <window xmlns:html="http://www.w3.org/1999/xhtml"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         class="kodialog"
@@ -37,21 +44,23 @@
                 pref="true"
                 prefstring="perfectpython.pep8.enabled"
                 prefattribute="checked"
+                oncommand="toggleDisabled(this)"
             />
             
             <hbox align="center">
                 <checkbox
                     id="perfectpython-pep8-warnLineLength"
                     label="Warn when line length exceeds"
-                    onclick="toggleWarnLineLength(this)"
+                    oncommand="toggleWarnLineLength(this)"
                 />
                 <textbox
                     id="perfectpython-pep8-maxLineLength"
+                    type="number"
                     size="2"
                     pref="true"
                     prefstring="perfectpython.pep8.maxLineLength"
                     prefattribute="value"
-                    onkeyup="toggleWarnLineLength(this)"
+                    oncommand="toggleWarnLineLength(this)"
                 />
                 <label value="characters"/>
             </hbox>
@@ -80,19 +89,68 @@
         <groupbox orient="vertical">
             <caption label="Pylint"/>
             
-            <description>
-                The Pylint settings (which errors to display) are currently
-                hardcoded. You can only turn it on or off. More options will
-                be included in a future release!
-            </description>
-            
             <checkbox
                 id="perfectpython-pylint-enabled"
                 label="Enable Pylint checking"
                 pref="true"
                 prefstring="perfectpython.pylint.enabled"
                 prefattribute="checked"
+                oncommand="toggleDisabled(this)"
             />
+            
+            <separator class="thin"/>
+            
+            <description>
+                Ignore the following comma separated ids:
+            </description>
+            <textbox
+                id="perfectpython-pylint-ignoredIds"
+                pref="true"
+                prefstring="perfectpython.pylint.ignoredIds"
+                prefattribute="value"
+            />
+            
+            
+            <!--
+            <description>
+                Display the following messages:
+            </description>
+            
+            <tree
+                id="perfectpython-pylint-messages"
+                class="no-border"
+                hidecolumnpicker="true"
+                editable="true"
+                rows="6"
+                onselect="PrefCodeIntel_UpdateCatalogsUI();"
+                onclick="return PrefCodeIntel_CatalogsOnClick(event);"
+                onkeypress="return PrefCodeIntel_CatalogsOnKeyPress(event);"
+                >
+                <treecols>
+                    <treecol
+                        id="perfectpython-pylint-messages-enabled"
+                        type="checkbox"
+                        editable="true"
+                        class="treecol-image"
+                        tooltiptext=" "
+                        src="chrome://komodo/skin/images/cbox-check.gif"
+                    />
+                    <treecol
+                        id="perfectpython-pylint-messages-code"
+                        label="Code"
+                        style="width: 7em;"
+                    />
+                    <treecol
+                        id="perfectpython-pylint-messages-message"
+                        label="Message"
+                        flex="1"
+                    />
+                </treecols>
+                <treechildren
+                    alternatingbackground="true"
+                />
+            </tree>
+            -->
             
         </groupbox>
         

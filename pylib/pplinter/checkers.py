@@ -1,9 +1,13 @@
+import logging
 import re
 import sys
 import StringIO
 
 from koLintResult import KoLintResult, SEV_ERROR, SEV_WARNING
 from pplinter.preferences import PrefSet
+
+
+LOG = logging.getLogger("perfectpython")
 
 
 class Checker(object):
@@ -39,7 +43,7 @@ class Checker(object):
     @property
     def preferences(self):
         if not hasattr(self, '_preferences'):
-            self._preferences = PrefSet(self.request, 'perfectpython.%s' % self.pref_scope)
+            self._preferences = PrefSet(self.request, self.pref_scope)
         return self._preferences
 
     def results(self):
@@ -86,10 +90,9 @@ class Pep8Checker(Checker):
     pref_scope = 'pep8'
 
     def get_ignored_ids(self):
-        ids = []
         if not self.max_line_length:
-            ids.append('E501')
-        return ids
+            return 'E501'
+        return 'none'
 
     @staticmethod
     def get_severity(code, description):
@@ -99,7 +102,7 @@ class Pep8Checker(Checker):
     def max_line_length(self):
         if not hasattr(self, '_max_line_length'):
             try:
-                number = int(self.preferences.get_or_create('maxLineLength', '80'))
+                number = int(self.preferences.get_or_create('maxLineLength'))
             except ValueError:
                 number = None
             self._max_line_length = number
@@ -108,13 +111,12 @@ class Pep8Checker(Checker):
     @property
     def output(self):
 
-        if not self.preferences.get_or_create('enabled', True):
+        if not self.preferences.get_or_create('enabled'):
             return ''
 
         options = [self.path, '--repeat']
 
-        ignored_ids = self.get_ignored_ids()
-        options.extend(('--ignore', ','.join(ignored_ids) or 'none'))
+        options.extend(('--ignore', self.get_ignored_ids()))
 
         stdout, sys.stdout = sys.stdout, StringIO.StringIO()
         try:
@@ -152,7 +154,7 @@ class PyflakesChecker(Checker):
     @property
     def output(self):
 
-        if not self.preferences.get_or_create('enabled', False):
+        if not self.preferences.get_or_create('enabled'):
             return ''
 
         stderr, sys.stderr = sys.stderr, StringIO.StringIO()
@@ -185,28 +187,17 @@ class PylintChecker(Checker):
     ))
     pref_scope = 'pylint'
 
-    @staticmethod
-    def get_ignored_ids():
-        return (
-            'C0111',  # Missing docstring
-            'C0301',  # Line too long
-            'I0011',  # Locally disabling <message-id>
-            'R0903',  # Too few public methods
-            'R0921',  # Abstract class not referenced
-            'W0201',  # Attribute defined outside __init__
-            'W0232',  # Class has no __init__ method
-            'W0613',  # Unused argument
-            'W0703',  # Catching too general exception Exception
-        )
+    def get_ignored_ids(self):
+        return self.preferences.get_or_create('ignoredIds')
 
     @property
     def output(self):
 
-        if not self.preferences.get_or_create('enabled', True):
+        if not self.preferences.get_or_create('enabled'):
             return ''
 
         options = []
-        options.extend(('--disable', ','.join(self.get_ignored_ids())))
+        options.extend(('--disable', self.get_ignored_ids()))
         options.extend(('--include-ids', 'y'))
         options.extend(('--module-rgx', '.+'))  # Don't complain about the temp filename
         options.extend(('--reports', 'n'))
