@@ -7,6 +7,9 @@
   <string id="editAutoIndentStyle">smart</string>
   <boolean id="editBackspaceDedents">1</boolean>
   <boolean id="editElectricBrace">1</boolean>
+  <string relative="path" id="import_dirname"></string>
+  <string id="import_exclude_matches">*.*~;*.bak;*.tmp;CVS;.#*;*.pyo;*.pyc;.svn;.git;.hg;.bzr;*%25*;tmp*.html;.DS_Store;*.swp;*.kpf;*.komodoproject;.komodotools;__pycache__</string>
+  <string id="import_include_matches"></string>
   <boolean id="indentStringsAfterParens">0</boolean>
   <long id="indentWidth">4</long>
   <string id="koextgen.target">komodo</string>
