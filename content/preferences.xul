@@ -6,15 +6,13 @@
 
 <?xml-stylesheet href="chrome://global/skin" type="text/css"?>
 <?xml-stylesheet href="chrome://komodo/skin/" type="text/css"?>
-<?xml-stylesheet href="chrome://komodo/skin/bindings/widgets.css" type="text/css"?>
+<!--<?xml-stylesheet href="chrome://komodo/skin/bindings/widgets.css" type="text/css"?>-->
 <?xml-stylesheet href="chrome://komodo/skin/prefs/prefs.css" type="text/css"?>
 
-
-<?xml-stylesheet href="chrome://komodo/skin/global/global.css" type="text/css"?>
-<?xml-stylesheet href="chrome://komodo/skin/codeintel.css" type="text/css"?>
-<?xml-stylesheet href="chrome://komodo/skin/tree.css" type="text/css"?>
-<?xml-stylesheet href="chrome://komodo/skin/prefs/pref-codeintel.css" type="text/css"?>
-
+<!--<?xml-stylesheet href="chrome://komodo/skin/global/global.css" type="text/css"?>-->
+<!--<?xml-stylesheet href="chrome://komodo/skin/codeintel.css" type="text/css"?>-->
+<!--<?xml-stylesheet href="chrome://komodo/skin/tree.css" type="text/css"?>-->
+<!--<?xml-stylesheet href="chrome://komodo/skin/prefs/pref-codeintel.css" type="text/css"?>-->
 
 <window xmlns:html="http://www.w3.org/1999/xhtml"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -22,18 +20,10 @@
         orient="vertical"
         onload="parent.initPanel()"
         >
-
-    <script src="chrome://komodo/content/library/trace.js" type="application/x-javascript"/>
-    <script src="chrome://komodo/content/library/logging.js" type="application/x-javascript"/>
-    <script src="chrome://komodo/content/library/dialogs.js" type="application/x-javascript"/>
-    <script src="chrome://komodo/content/library/uriparse.js" type="application/x-javascript;version=1.7"/>
-    <script src="chrome://komodo/content/library/filepickers.js" type="application/x-javascript;version=1.7"/>
-    <script src="chrome://komodo/content/pref/koPrefUtils.js" type="application/x-javascript;version=1.7" />
-    <script src="chrome://komodo/content/library/filepickers.js" type="application/x-javascript;version=1.7" />
     
     <script src="chrome://perfectpython/content/preferences.js" type="application/x-javascript"/>
     
-    <vbox id="perfectpython-properties-prefs-vbox" flex="1" class="autoscroll">
+    <vbox flex="1" class="autoscroll">
         
         <groupbox orient="vertical">
             <caption label="PEP 8"/>
@@ -68,25 +58,6 @@
         </groupbox>
         
         <groupbox orient="vertical">
-            <caption label="Pyflakes"/>
-            
-            <description>
-                Pyflakes checks for some basic problems such as unused imports
-                and syntax errors. While this is a great tool, it is recommended
-                that you instead use Pylint for its greater range of checks.
-            </description>
-            
-            <checkbox
-                id="perfectpython-pyflakes-enabled"
-                label="Enable Pyflakes checking"
-                pref="true"
-                prefstring="perfectpython.pyflakes.enabled"
-                prefattribute="checked"
-            />
-            
-        </groupbox>
-        
-        <groupbox orient="vertical">
             <caption label="Pylint"/>
             
             <checkbox
@@ -109,7 +80,6 @@
                 prefstring="perfectpython.pylint.ignoredIds"
                 prefattribute="value"
             />
-            
             
             <!--
             <description>
@@ -151,6 +121,23 @@
                 />
             </tree>
             -->
+            
+        </groupbox>
+        
+        <groupbox orient="vertical">
+            <caption label="Pyflakes"/>
+            
+            <description>
+                Pyflakes is a light-weight alternative to Pylint, with a small subset of its checks.
+            </description>
+            
+            <checkbox
+                id="perfectpython-pyflakes-enabled"
+                label="Enable Pyflakes checking"
+                pref="true"
+                prefstring="perfectpython.pyflakes.enabled"
+                prefattribute="checked"
+            />
             
         </groupbox>
         

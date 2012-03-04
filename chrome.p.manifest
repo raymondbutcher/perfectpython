@@ -9,5 +9,4 @@ skin perfectpython classic/1.0 jar:perfectpython.jar!/skin/
 locale perfectpython en-US jar:perfectpython.jar!/locale/en-US/
 # #endif
 
-overlay chrome://komodo/content/komodo.xul chrome://perfectpython/content/komodo.xul
 overlay chrome://komodo/content/pref/pref.xul chrome://perfectpython/content/pref.xul
