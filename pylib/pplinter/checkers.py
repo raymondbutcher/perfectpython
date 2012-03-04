@@ -199,6 +199,7 @@ class PylintChecker(Checker):
         options = []
         options.extend(('--disable', self.get_ignored_ids()))
         options.extend(('--include-ids', 'y'))
+        options.extend(('--good-names', '_'))
         options.extend(('--module-rgx', '.+'))  # Don't complain about the temp filename
         options.extend(('--reports', 'n'))
         options.append(self.path)

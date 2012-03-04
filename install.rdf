@@ -4,10 +4,10 @@
     <Description about="urn:mozilla:install-manifest">
         <em:id>perfectpython@rbutcher.com</em:id>
         <em:name>Perfect Python</em:name>
-        <em:version>0.6</em:version>
+        <em:version>0.6.1</em:version>
         <em:description>Performs PEP 8, Pylint, and Pyflakes syntax checking.</em:description>
         <em:creator>Raymond Butcher</em:creator>
-        <em:homepageURL>http://rbutcher.com/perfectpython/</em:homepageURL>
+        <em:homepageURL>http://www.rbutcher.com/perfectpython</em:homepageURL>
         <em:type>2</em:type> <!-- type=extension --> 
 
         <em:targetApplication>

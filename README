@@ -1,12 +1,8 @@
-This extension for Komodo 7 adds PEP 8 and Pyflakes syntax checking.
+This extension for Komodo 7 adds PEP 8, Pylint, and Pyflakes syntax checking.
 
-I plan to add pylint support too. Komodo's built in support does not
-make use of your project's additional import directories, so it keeps
-complaining about being imports and classes being wrong.
+Everything is built into the extension, so no other installation is required.
+It also avoids bugs that are in Komodo's built-in implementation.
 
-I also plan to add a preferences screen to allow configuration (e.g. the
-maximum line length before it complains, error codes to ignore, etc.).
-I don't know how to do this yet, and the extension works pretty well for
-me already, so we'll see if I ever get around to it.
+Check the preferences under "Syntax Checking" > "Perfect Python"
 
 Get the latest release from http://community.activestate.com/node/7989

@@ -15,7 +15,7 @@ var preferences = {
     },
     'pylint': {
         'enabled': true,
-        'ignoredIds': 'C0111,C0301,I0011,R0903,R0921,W0201,W0232,W0613,W0703'
+        'ignoredIds': 'C0111,C0301,C0322,C0324,I0011,R0903,R0921,W0201,W0232,W0613,W0703'
     }
 }
 
