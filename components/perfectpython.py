@@ -24,6 +24,10 @@ class PerfectPythonLinter(object):
 
     checker_classes = (Pep8Checker, PyflakesChecker, PylintChecker)
 
+    def __init__(self):
+        app_info = components.classes['@activestate.com/koAppInfoEx?app=Python;1']
+        self._python = app_info.createInstance(components.interfaces.koIAppInfoEx)
+
     def lint(self, request):
         text = request.content.encode(request.encoding.python_encoding_name)
         return self.lint_with_text(request, text)
@@ -32,6 +36,10 @@ class PerfectPythonLinter(object):
 
         if not text:
             return
+
+        # Try to use the user's configured version of python,
+        # otherwise use Komodo's included version.
+        python = self._python.getExecutableFromDocument(request.koDoc)
 
         # Add the current dir so that the checkers can find relative files.
         if request.cwd not in sys.path:
@@ -59,7 +67,7 @@ class PerfectPythonLinter(object):
 
                 try:
 
-                    checker = checker_class(request, temp_file.name, text_lines)
+                    checker = checker_class(request, temp_file.name, text_lines, python=python)
                     checker.add_to_results(results)
 
                 except Exception:

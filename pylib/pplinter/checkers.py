@@ -1,4 +1,6 @@
+import koprocessutils
 import logging
+import process
 import re
 import sys
 import StringIO
@@ -17,10 +19,11 @@ class Checker(object):
     parse_pattern = None
     pref_scope = None
 
-    def __init__(self, request, path, text_lines):
+    def __init__(self, request, path, text_lines, python=None):
         self.request = request
         self.path = path
         self.text = text_lines
+        self.python = python
 
     def add_to_results(self, results):
         for result in self.results():
@@ -188,8 +191,25 @@ class PylintChecker(Checker):
     ))
     pref_scope = 'pylint'
 
+    pylint_config_warning = 'No config file found, using default configuration\n'
+    pylint_python_code = ';'.join((
+        'import os',
+        'import sys',
+        '[sys.path.append(path) for path in os.environ.get("KOMODO_PATHS").split(":")]',
+        'from pylint.lint import Run',
+        'Run(sys.argv[1:])',
+    ))
+
     def get_ignored_ids(self):
         return self.preferences.get_string('ignoredIds')
+
+    @staticmethod
+    def get_severity(code, description):
+        for code_type in ('E', 'F'):
+            if code.startswith(code_type):
+                return SEV_ERROR
+        else:
+            return SEV_WARNING
 
     @property
     def output(self):
@@ -205,6 +225,35 @@ class PylintChecker(Checker):
         options.extend(('--reports', 'n'))
         options.append(self.path)
 
+        if self.python:
+            return self.run_externally(options)
+        else:
+            return self.run_internally(options)
+
+    def run_externally(self, options):
+
+        command = [self.python, '-c', self.pylint_python_code]
+
+        environment = koprocessutils.getUserEnv()
+        environment['KOMODO_PATHS'] = ':'.join(sys.path)
+
+        pylint_process = process.ProcessOpen(
+            cmd=command + options,
+            cwd=self.request.cwd,
+            env=environment,
+            stdin=None,
+        )
+        stdout, stderr = pylint_process.communicate()
+        if stderr != self.pylint_config_warning:
+            LOG.critical('Error running pylint script: %s' % stderr)
+            LOG.warn('Command: %s' % command)
+            LOG.warn('Environment: %s' % environment)
+            LOG.warn('Standard Output: %s' % stdout)
+        return stdout.strip()
+
+    @staticmethod
+    def run_internally(options):
+
         stdout, sys.stdout = sys.stdout, StringIO.StringIO()
         try:
 
@@ -214,11 +263,3 @@ class PylintChecker(Checker):
 
         finally:
             sys.stdout = stdout
-
-    @staticmethod
-    def get_severity(code, description):
-        for code_type in ('E', 'F'):
-            if code.startswith(code_type):
-                return SEV_ERROR
-        else:
-            return SEV_WARNING
