@@ -37,8 +37,9 @@ class PerfectPythonLinter(object):
         if not text:
             return
 
-        # Try to use the user's configured version of python,
-        # otherwise use Komodo's included version.
+        # Make the user's configured version of python available to the
+        # checkers. They can start this exe in a new process or just
+        # use the current interpreter.
         python = self._python.getExecutableFromDocument(request.koDoc)
 
         # Add the current dir so that the checkers can find relative files.

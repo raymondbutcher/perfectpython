@@ -1,3 +1,6 @@
+// Default allowed line length.
+var maxLineLengthDefault = 120;
+
 // Store the widget elements here.
 var widgets;
 
@@ -63,9 +66,12 @@ var getWidgets = function() {
 function toggleWarnLineLength(from) {
     if (from == widgets.pep8.warnLineLength) {
         if (from.checked) {
-            widgets.pep8.maxLineLength.value = preferences.pep8.maxLineLength
+            widgets.pep8.maxLineLength.value = maxLineLengthDefault;
         } else {
-            widgets.pep8.maxLineLength.value = '';
+            if (parseInt(widgets.pep8.maxLineLength.value)) {
+                maxLineLengthDefault = widgets.pep8.maxLineLength.value;
+            }
+            widgets.pep8.maxLineLength.value = '0';
         }
     } else {
         widgets.pep8.warnLineLength.checked = Boolean(parseInt(widgets.pep8.maxLineLength.value));

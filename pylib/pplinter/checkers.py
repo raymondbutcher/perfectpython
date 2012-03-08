@@ -1,5 +1,6 @@
 import koprocessutils
 import logging
+import os
 import process
 import re
 import sys
@@ -195,7 +196,7 @@ class PylintChecker(Checker):
     pylint_python_code = ';'.join((
         'import os',
         'import sys',
-        '[sys.path.append(path) for path in os.environ.get("KOMODO_PATHS").split(":")]',
+        '[sys.path.append(path) for path in os.environ.get("KOMODO_PATHS").split(os.pathsep)]',
         'from pylint.lint import Run',
         'Run(sys.argv[1:])',
     ))
@@ -235,7 +236,7 @@ class PylintChecker(Checker):
         command = [self.python, '-c', self.pylint_python_code]
 
         environment = koprocessutils.getUserEnv()
-        environment['KOMODO_PATHS'] = ':'.join(sys.path)
+        environment['KOMODO_PATHS'] = os.pathsep.join(sys.path)
 
         pylint_process = process.ProcessOpen(
             cmd=command + options,
@@ -253,6 +254,7 @@ class PylintChecker(Checker):
 
     @staticmethod
     def run_internally(options):
+        """This is never used but I'll leave it here anyway."""
 
         stdout, sys.stdout = sys.stdout, StringIO.StringIO()
         try:
