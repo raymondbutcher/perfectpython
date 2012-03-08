@@ -1,49 +1,45 @@
 // Store the widget elements here.
 var widgets;
 
-// All preferences and their default values.
+// All preferences and their types.
 // A value of undefined will allow a widget to be mapped,
-// without actually storing a preference.
+// without actually linking to a preference.
 var preferences = {
     'pep8': {
-        'enabled': true,
-        'warnLineLength': undefined, // Just a widget.
-        'maxLineLength': 80,
+        'enabled': Boolean,
+        'warnLineLength': undefined,
+        'maxLineLength': String
     },
     'pyflakes': {
-        'enabled': false
+        'enabled': Boolean
     },
     'pylint': {
-        'enabled': true,
-        'ignoredIds': 'C0111,C0301,C0322,C0324,I0011,R0903,R0921,W0201,W0232,W0613,W0703'
+        'enabled': Boolean,
+        'ignoredIds': String
     }
 }
 
 
 var getPrefs = function(prefset) {
-    function getOrCreate(name, defaultValue) {
-        if (typeof(defaultValue) == 'boolean') {
-            if (!prefset.hasPref(name)) {
-                prefset.setBooleanPref(name, defaultValue);
-                return defaultValue
-            }
+    function getValue(name, valueType) {
+        if (valueType == Boolean) {
             return prefset.getBooleanPref(name);
         } else {
-            if (!prefset.hasPref(name)) {
-                prefset.setStringPref(name, defaultValue);
-                return defaultValue
-            }
-            return prefset.getStringPref(name)
+            return prefset.getStringPref(name);
         }
     }
     var results = {}
     for (type in preferences) {
         results[type] = {}
         for (name in preferences[type]) {
-            var defaultValue = preferences[type][name];
-            if (defaultValue != undefined) {
-                var id = 'perfectpython.' + type + '.' + name;
-                results[type][name] = getOrCreate(id, defaultValue);
+            var valueType = preferences[type][name];
+            if (valueType != undefined) {
+                var full_name = 'perfectpython.' + type + '.' + name;
+                try {
+                    results[type][name] = getValue(full_name, valueType);
+                } catch (error) {
+                    alert(error);
+                }
             }
         }
     }

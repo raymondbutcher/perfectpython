@@ -128,7 +128,7 @@
             <caption label="Pyflakes"/>
             
             <description>
-                Pyflakes is a light-weight alternative to Pylint, with a small subset of its checks.
+                Pyflakes is a light-weight alternative to Pylint, with a small subset of checks.
             </description>
             
             <checkbox

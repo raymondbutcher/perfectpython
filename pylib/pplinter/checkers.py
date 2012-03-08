@@ -17,10 +17,10 @@ class Checker(object):
     parse_pattern = None
     pref_scope = None
 
-    def __init__(self, request, path, text):
+    def __init__(self, request, path, text_lines):
         self.request = request
         self.path = path
-        self.text = text.splitlines(True)
+        self.text = text_lines
 
     def add_to_results(self, results):
         for result in self.results():
@@ -102,7 +102,7 @@ class Pep8Checker(Checker):
     def max_line_length(self):
         if not hasattr(self, '_max_line_length'):
             try:
-                number = int(self.preferences.get_or_create('maxLineLength'))
+                number = int(self.preferences.get_string('maxLineLength'))
             except ValueError:
                 number = None
             self._max_line_length = number
@@ -111,7 +111,7 @@ class Pep8Checker(Checker):
     @property
     def output(self):
 
-        if not self.preferences.get_or_create('enabled'):
+        if not self.preferences.get_boolean('enabled'):
             return ''
 
         options = [self.path, '--repeat']
@@ -154,7 +154,7 @@ class PyflakesChecker(Checker):
     @property
     def output(self):
 
-        if not self.preferences.get_or_create('enabled'):
+        if not self.preferences.get_boolean('enabled'):
             return ''
 
         stderr, sys.stderr = sys.stderr, StringIO.StringIO()
@@ -168,7 +168,8 @@ class PyflakesChecker(Checker):
             if errors:
                 return errors
             else:
-                return sys.stdout.getvalue().strip()
+                output = sys.stdout.getvalue().strip()
+                return output
 
         finally:
             sys.stderr = stderr
@@ -188,12 +189,12 @@ class PylintChecker(Checker):
     pref_scope = 'pylint'
 
     def get_ignored_ids(self):
-        return self.preferences.get_or_create('ignoredIds')
+        return self.preferences.get_string('ignoredIds')
 
     @property
     def output(self):
 
-        if not self.preferences.get_or_create('enabled'):
+        if not self.preferences.get_boolean('enabled'):
             return ''
 
         options = []

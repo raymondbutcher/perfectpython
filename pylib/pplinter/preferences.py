@@ -1,20 +1,11 @@
+import logging
+
 from koLintResult import getProxiedEffectivePrefs
 
-SCOPE = 'perfectpython'
 
-DEFAULTS = {
-    'pep8': {
-        'enabled': True,
-        'maxLineLength': 80,
-    },
-    'pyflakes': {
-        'enabled': False,
-    },
-    'pylint': {
-        'enabled': True,
-        'ignoredIds': 'C0111,C0301,I0011,R0903,R0921,W0201,W0232,W0613,W0703',
-    }
-}
+LOG = logging.getLogger("perfectpython")
+
+SCOPE = 'perfectpython'
 
 
 class PrefSet(object):
@@ -23,22 +14,19 @@ class PrefSet(object):
         self.prefset = getProxiedEffectivePrefs(request)
         self.scope = scope
 
-    def get_or_create(self, name, default=None):
+    def _get_full_name(self, name):
+        return '%s.%s.%s' % (SCOPE, self.scope, name)
 
-        full_name = '%s.%s.%s' % (SCOPE, self.scope, name)
-
-        if default is None:
-            default = DEFAULTS[self.scope][name]
-
-        if isinstance(default, bool):
-            get_pref = self.prefset.getBooleanPref
-            set_pref = self.prefset.setBooleanPref
-        else:
-            get_pref = self.prefset.getStringPref
-            set_pref = self.prefset.setStringPref
-
+    def _get_preference(self, get_pref, name):
+        full_name = self._get_full_name(name)
         try:
             return get_pref(full_name)
         except Exception:
-            set_pref(full_name, default)
-            return default
+            LOG.critical('Could not get preference: %s' % full_name)
+            raise
+
+    def get_boolean(self, name):
+        return self._get_preference(self.prefset.getBooleanPref, name)
+
+    def get_string(self, name):
+        return self._get_preference(self.prefset.getStringPref, name)

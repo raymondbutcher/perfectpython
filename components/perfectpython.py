@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+import sys
 import tempfile
 
 from koLintResults import koLintResults
@@ -31,6 +33,15 @@ class PerfectPythonLinter(object):
         if not text:
             return
 
+        # Add the current dir so that the checkers can find relative files.
+        if request.cwd not in sys.path:
+            sys.path.append(request.cwd)
+
+        # Avoid issues with windows newlines by pretending they don't exist.
+        text = re.sub(r'\r\n', r'\n', text)
+
+        text_lines = text.splitlines(True)
+
         results = koLintResults()
 
         temp_file = tempfile.NamedTemporaryFile(
@@ -48,7 +59,7 @@ class PerfectPythonLinter(object):
 
                 try:
 
-                    checker = checker_class(request, temp_file.name, text)
+                    checker = checker_class(request, temp_file.name, text_lines)
                     checker.add_to_results(results)
 
                 except Exception:
