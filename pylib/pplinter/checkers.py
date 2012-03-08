@@ -10,7 +10,7 @@ from koLintResult import KoLintResult, SEV_ERROR, SEV_WARNING
 from pplinter.preferences import PrefSet
 
 
-LOG = logging.getLogger("perfectpython")
+LOG = logging.getLogger('perfectpython')
 
 
 class Checker(object):
@@ -193,13 +193,20 @@ class PylintChecker(Checker):
     pref_scope = 'pylint'
 
     pylint_config_warning = 'No config file found, using default configuration\n'
-    pylint_python_code = ';'.join((
-        'import os',
-        'import sys',
-        '[sys.path.append(path) for path in os.environ.get("KOMODO_PATHS").split(os.pathsep)]',
-        'from pylint.lint import Run',
-        'Run(sys.argv[1:])',
-    ))
+    pylint_python_code = '''
+import os
+import sys
+all_paths = []
+all_paths += os.environ.get("KOMODO_PATHS_BEFORE").split(os.pathsep)
+all_paths += sys.path
+all_paths += os.environ.get("KOMODO_PATHS_AFTER").split(os.pathsep)
+sys.path = []
+for path in all_paths:
+    if path not in sys.path:
+        sys.path.append(path)
+from pylint.lint import Run
+Run(sys.argv[1:])
+'''
 
     def get_ignored_ids(self):
         return self.preferences.get_string('ignoredIds')
@@ -221,7 +228,7 @@ class PylintChecker(Checker):
         options = []
         options.extend(('--disable', self.get_ignored_ids()))
         options.extend(('--include-ids', 'y'))
-        options.extend(('--good-names', '_'))
+        options.extend(('--good-names', '_,db'))
         options.extend(('--module-rgx', '.+'))  # Don't complain about the temp filename
         options.extend(('--reports', 'n'))
         options.append(self.path)
@@ -236,7 +243,8 @@ class PylintChecker(Checker):
         command = [self.python, '-c', self.pylint_python_code]
 
         environment = koprocessutils.getUserEnv()
-        environment['KOMODO_PATHS'] = os.pathsep.join(sys.path)
+        environment['KOMODO_PATHS_BEFORE'] = self.preferences.get_string('pythonExtraPaths', scope='')
+        environment['KOMODO_PATHS_AFTER'] = os.pathsep.join(sys.path)
 
         pylint_process = process.ProcessOpen(
             cmd=command + options,

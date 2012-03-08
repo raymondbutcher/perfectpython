@@ -9,7 +9,7 @@ from pplinter.checkers import Pep8Checker, PyflakesChecker, PylintChecker
 from xpcom import components
 
 
-LOG = logging.getLogger("perfectpython")
+LOG = logging.getLogger('perfectpython')
 
 
 class PerfectPythonLinter(object):
