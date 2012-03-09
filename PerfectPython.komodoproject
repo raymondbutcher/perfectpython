@@ -14,7 +14,7 @@
   <long id="indentWidth">4</long>
   <string id="koextgen.target">komodo</string>
   <string id="pythonDefaultInterpreter"></string>
-  <string relative="path" id="pythonExtraPaths">pylib%2525252525253A/Applications/Komodo%25252525252520Edit.app/Contents/MacOS/python/komodo%2525252525253A/Applications/Komodo%25252525252520Edit.app/Contents/MacOS/python</string>
+  <string relative="path" id="pythonExtraPaths">pylib%25252525252525253A/Applications/Komodo%252525252525252520Edit.app/Contents/MacOS/python/komodo%25252525252525253A/Applications/Komodo%252525252525252520Edit.app/Contents/MacOS/python</string>
   <boolean id="showIndentationGuides">1</boolean>
   <long id="tabWidth">8</long>
   <boolean id="useSmartTabs">1</boolean>
