@@ -1,45 +1,55 @@
-// Default allowed line length.
-var maxLineLengthDefault = 120;
+// Ensure this matches preferences.py
+var prefScope = 'pplint-0-6-5';
 
 // Store the widget elements here.
 var widgets;
 
-// All preferences and their types.
+// All preferences and their defaults.
 // A value of undefined will allow a widget to be mapped,
 // without actually linking to a preference.
 var preferences = {
     'pep8': {
-        'enabled': Boolean,
+        'enabled': true,
         'warnLineLength': undefined,
-        'maxLineLength': String
+        'maxLineLength': '120'
     },
     'pyflakes': {
-        'enabled': Boolean
+        'enabled': false
     },
     'pylint': {
-        'enabled': Boolean,
-        'ignoredIds': String
+        'enabled': false,
+        'ignoredIds': 'C0111,C0301,C0322,C0324,I0011,R0902,R0903,R0904,R0921,W0142,W0201,W0212,W0232,W0613,W0703'
     }
 }
 
 
 var getPrefs = function(prefset) {
-    function getValue(name, valueType) {
-        if (valueType == Boolean) {
-            return prefset.getBooleanPref(name);
+    function getOrCreate(name, defaultValue) {
+        if (typeof(defaultValue) == 'boolean') {
+            if (prefset.hasPref(name)) {
+                return prefset.getBooleanPref(name);
+            } else {
+                prefset.setBooleanPref(name, defaultValue);
+                return defaultValue;
+            }
         } else {
-            return prefset.getStringPref(name);
+            if (prefset.hasPref(name)) {
+                return prefset.getStringPref(name);
+            } else {
+                prefset.setStringPref(name, defaultValue);
+                return defaultValue;
+            }
         }
     }
     var results = {}
     for (type in preferences) {
         results[type] = {}
         for (name in preferences[type]) {
-            var valueType = preferences[type][name];
-            if (valueType != undefined) {
-                var full_name = 'perfectpython.' + type + '.' + name;
+            var defaultValue = preferences[type][name];
+            if (defaultValue != undefined) {
+                var full_name = prefScope + '.' + type + '.' + name;
                 try {
-                    results[type][name] = getValue(full_name, valueType);
+                    results[type][name] = getOrCreate(full_name, defaultValue);
                 } catch (error) {
                     alert(error);
                 }
@@ -66,10 +76,10 @@ var getWidgets = function() {
 function toggleWarnLineLength(from) {
     if (from == widgets.pep8.warnLineLength) {
         if (from.checked) {
-            widgets.pep8.maxLineLength.value = maxLineLengthDefault;
+            widgets.pep8.maxLineLength.value = preferences.pep8.maxLineLength;
         } else {
             if (parseInt(widgets.pep8.maxLineLength.value)) {
-                maxLineLengthDefault = widgets.pep8.maxLineLength.value;
+                preferences.pep8.maxLineLength = widgets.pep8.maxLineLength.value;
             }
             widgets.pep8.maxLineLength.value = '0';
         }
@@ -107,26 +117,65 @@ function toggleDisabled(from) {
 
 function OnPreferencePageLoading(prefset) {
     
-    if (!widgets) {
-        widgets = getWidgets();
+    try {
+        
+        if (!widgets) {
+            widgets = getWidgets();
+        }
+        
+        var prefs = getPrefs(prefset);
+        
+        // Set up Pep8 widgets.
+        widgets.pep8.enabled.checked = prefs.pep8.enabled;
+        widgets.pep8.maxLineLength.value = prefs.pep8.maxLineLength;
+        toggleWarnLineLength(widgets.pep8.maxLineLength);
+        
+        // Set up Pyflakes widget.
+        widgets.pyflakes.enabled.checked = prefs.pyflakes.enabled;
+        
+        // Set up Pylint widgets.
+        widgets.pylint.enabled.checked = prefs.pylint.enabled;
+        widgets.pylint.ignoredIds.value = prefs.pylint.ignoredIds;
+        
+        // Disable widgets if their checker is disabled.
+        for (scope in widgets) {
+            toggleDisabled(widgets[scope].enabled)
+        }
+        
+    } catch(error) {
+        alert(error);
     }
     
-    var prefs = getPrefs(prefset);
-    
-    // Set up Pep8 widgets.
-    widgets.pep8.enabled.checked = prefs.pep8.enabled;
-    widgets.pep8.maxLineLength.value = prefs.pep8.maxLineLength;
-    toggleWarnLineLength(widgets.pep8.maxLineLength);
-    toggleDisabled(widgets.pep8.enabled);
-    
-    // Set up Pyflakes widget.
-    widgets.pyflakes.enabled.checked = prefs.pyflakes.enabled;
-    //toggleDisabled(widgets.pyflakes.enabled); // There are no other widgets.
-    
-    // Set up Pylint widgets.
-    widgets.pylint.enabled.checked = prefs.pylint.enabled;
-    widgets.pylint.ignoredIds.value = prefs.pylint.ignoredIds;
-    //widgets.pylint.messages.view = pylintMessageView;
-    toggleDisabled(widgets.pylint.enabled);
-    
+}
+
+
+function OnPreferencePageOK(prefset) {
+    try {
+        
+        for (checker in widgets) {
+            for (name in widgets[checker]) {
+                if (preferences[checker]) {
+                    var defaultValue = preferences[checker][name];
+                    if (typeof(defaultValue) != 'undefined') {
+                        
+                        var full_name = prefScope + '.' + checker + '.' + name;
+                        
+                        if (typeof(defaultValue) == 'boolean') {
+                            var value = widgets[checker][name].checked;
+                            prefset.setBooleanPref(full_name, value)
+                        } else {
+                            var value = widgets[checker][name].value;
+                            prefset.setStringPref(full_name, value)
+                        }
+                        
+                    }
+                    
+                }
+            }
+        }
+        
+    } catch(error) {
+        alert(error);
+    }
+    return true;
 }

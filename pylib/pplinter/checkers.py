@@ -27,8 +27,9 @@ class Checker(object):
         self.python = python
 
     def add_to_results(self, results):
-        for result in self.results():
-            results.addResult(result)
+        if self.preferences.get_boolean('enabled'):
+            for result in self.results():
+                results.addResult(result)
 
     @staticmethod
     def get_severity(code, description):
@@ -115,9 +116,6 @@ class Pep8Checker(Checker):
     @property
     def output(self):
 
-        if not self.preferences.get_boolean('enabled'):
-            return ''
-
         options = [self.path, '--repeat']
 
         options.extend(('--ignore', self.get_ignored_ids()))
@@ -157,9 +155,6 @@ class PyflakesChecker(Checker):
 
     @property
     def output(self):
-
-        if not self.preferences.get_boolean('enabled'):
-            return ''
 
         stderr, sys.stderr = sys.stderr, StringIO.StringIO()
         stdout, sys.stdout = sys.stdout, StringIO.StringIO()
@@ -221,9 +216,6 @@ Run(sys.argv[1:])
 
     @property
     def output(self):
-
-        if not self.preferences.get_boolean('enabled'):
-            return ''
 
         options = []
         options.extend(('--disable', self.get_ignored_ids()))

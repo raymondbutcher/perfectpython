@@ -10,6 +10,7 @@ from xpcom import components
 
 
 LOG = logging.getLogger('perfectpython')
+#LOG.setLevel(logging.DEBUG)
 
 
 class PerfectPythonLinter(object):

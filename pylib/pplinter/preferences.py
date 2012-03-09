@@ -5,7 +5,17 @@ from koLintResult import getProxiedEffectivePrefs
 
 LOG = logging.getLogger('perfectpython')
 
-SCOPE = 'perfectpython'
+# Ensure that this matches preferences.js and has no '.' characters in it.
+SCOPE = 'pplint-0-6-5'
+
+DEFAULTS = {
+    SCOPE: {
+        'pep8': {
+            'enabled': True,
+            'maxLineLength': '120',
+        }
+    }
+}
 
 
 class PrefSet(object):
@@ -14,22 +24,39 @@ class PrefSet(object):
         self.prefset = getProxiedEffectivePrefs(request)
         self.scope = scope
 
-    def _get_full_name(self, name):
-        return '%s.%s.%s' % (SCOPE, self.scope, name)
+    def _get_preference(self, getter, name, scope):
 
-    def _get_preference(self, get_pref, name, scope):
         if scope is None:
-            full_name = self._get_full_name(name)
+            full_name = '.'.join((SCOPE, self.scope, name))
         else:
             full_name = '.'.join(part for part in (scope, name) if part)
+
         try:
-            return get_pref(full_name)
+
+            if self.prefset.hasPref(full_name):
+
+                value = getter(full_name)
+                LOG.debug('GOT PREFERENCE: %s = %s' % (full_name, value))
+
+            else:
+
+                value = DEFAULTS
+                parts = full_name.split('.')
+                while value and parts:
+                    value = value.get(parts.pop(0))
+
+                LOG.debug('USING DEFAULT PREFERENCE: %s = %s' % (full_name, value))
+
+            return value
+
         except Exception:
-            LOG.critical('Could not get preference: %s' % full_name)
+            LOG.critical('ERROR GETTING PREFERENCE: %s' % full_name)
             raise
 
     def get_boolean(self, name, scope=None):
-        return self._get_preference(self.prefset.getBooleanPref, name, scope)
+        getter = self.prefset.getBooleanPref
+        return self._get_preference(getter, name, scope)
 
     def get_string(self, name, scope=None):
-        return self._get_preference(self.prefset.getStringPref, name, scope)
+        getter = self.prefset.getStringPref
+        return self._get_preference(getter, name, scope)
