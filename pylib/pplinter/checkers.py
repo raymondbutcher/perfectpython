@@ -11,6 +11,7 @@ from pplinter.preferences import PrefSet
 
 
 LOG = logging.getLogger('perfectpython')
+#LOG.setLevel(logging.DEBUG)
 
 
 class Checker(object):
@@ -31,8 +32,15 @@ class Checker(object):
             for result in self.results():
                 results.addResult(result)
 
+    def format_message(self, problem):
+        return ' '.join(part for part in (
+            self.label,
+            problem.get('code', ''),
+            problem.get('description', ''),
+        ) if part)
+
     @staticmethod
-    def get_severity(code, description):
+    def get_severity(problem):
         raise NotImplementedError()
 
     @property
@@ -44,6 +52,8 @@ class Checker(object):
             match = self.parse_pattern.match(line)
             if match:
                 yield match.groupdict()
+            else:
+                LOG.debug('UNMATCHED: %s' % line)
 
     @property
     def preferences(self):
@@ -57,16 +67,8 @@ class Checker(object):
 
             line = int(problem['line'])
             column = int(problem.get('column', 1)) + self.column_offset
-            code = problem.get('code', '')
-            description = problem.get('description', '')
 
-            severity = self.get_severity(code, description)
-
-            message = ': '.join(part for part in (
-                self.label,
-                code,
-                description,
-            ) if part)
+            severity = self.get_severity(problem)
 
             line_text = self.text[line - 1]
             column_end = len(line_text)
@@ -74,7 +76,7 @@ class Checker(object):
                 column = 1
 
             yield KoLintResult(
-                description=message,
+                description=self.format_message(problem),
                 severity=severity,
                 lineStart=line,
                 lineEnd=line,
@@ -100,7 +102,7 @@ class Pep8Checker(Checker):
         return 'none'
 
     @staticmethod
-    def get_severity(code, description):
+    def get_severity(problem):
         return SEV_WARNING
 
     @property
@@ -139,14 +141,18 @@ class PyflakesChecker(Checker):
     parse_pattern = re.compile(r'^.+?:(?P<line>\d+):\s*(?P<description>.+)$')
     pref_scope = 'pyflakes'
 
+    def format_message(self, problem):
+        return ': '.join((self.label, problem['description']))
+
     @staticmethod
-    def get_severity(code, description):
+    def get_severity(problem):
         warnings = (
             'imported but unused',
             'never used',
             'redefinition of function',
             'redefinition of unused',
         )
+        description = problem['description']
         for phrase in warnings:
             if phrase in description:
                 return SEV_WARNING
@@ -179,10 +185,11 @@ class PylintChecker(Checker):
 
     label = 'Pylint'
     column_offset = 1
-    parse_pattern = re.compile(r'^%s:\s*%s,%s:\s*%s' % (
+    parse_pattern = re.compile(r'^%s:\s*%s,%s:(\s*%s:)?\s*%s' % (
         '(?P<code>[A-Z]\d+)',
         '(?P<line>\d+)',
         '(?P<column>\d+)',
+        '(?P<location>.+?)',
         '(?P<description>.+)$',
     ))
     pref_scope = 'pylint'
@@ -203,11 +210,17 @@ from pylint.lint import Run
 Run(sys.argv[1:])
 '''
 
+    @staticmethod
+    def combine_regexes(*regexes):
+        regexes = ('(%s)' % regex for regex in regexes)
+        return '(%s)$' % '|'.join(regexes)
+
     def get_ignored_ids(self):
         return self.preferences.get_string('ignoredIds')
 
     @staticmethod
-    def get_severity(code, description):
+    def get_severity(problem):
+        code = problem['code']
         for code_type in ('E', 'F'):
             if code.startswith(code_type):
                 return SEV_ERROR
@@ -221,7 +234,22 @@ Run(sys.argv[1:])
         options.extend(('--disable', self.get_ignored_ids()))
         options.extend(('--include-ids', 'y'))
         options.extend(('--good-names', '_,db'))
-        options.extend(('--module-rgx', '.+'))  # Don't complain about the temp filename
+
+        # Don't complain about the temp filename.
+        options.extend(('--module-rgx', self.combine_regexes(
+            os.path.splitext(os.path.basename(self.path))[0],
+            '[a-z_][a-z0-9_]*',
+            '[A-Z][a-zA-Z0-9]+',
+        )))
+
+        # Allow lowercase variables in the module.
+        # Ensure that constants are more than 1 char long!
+        options.extend(('--const-rgx', self.combine_regexes(
+            '[a-z_][a-z0-9_]{2,30}',
+            '[A-Z_][A-Z0-9_]{2,30}',
+            '__.*__',
+        )))
+
         options.extend(('--reports', 'n'))
         options.append(self.path)
 
