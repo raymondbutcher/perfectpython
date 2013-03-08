@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: logilab-common
-Version: 0.57.1
+Version: 0.59.0
 Summary: collection of low-level Python packages and modules used by Logilab projects
 Home-page: http://www.logilab.org/project/logilab-common
 Author: Logilab
@@ -14,7 +14,7 @@ Description: Logilab's common library
         
         This package contains some modules used by differents Logilab's projects.
         
-        It is released under the GNU Public License.
+        It is released under the GNU Lesser General Public License.
         
         There is no documentation available yet but the source code should be clean and
         well documented.
@@ -195,3 +195,7 @@ Description: Logilab's common library
         .. _`zope.interface`: http://pypi.python.org/pypi/zope.interface
         
 Platform: UNKNOWN
+Classifier: Topic :: Utilities
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3

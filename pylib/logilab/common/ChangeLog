@@ -1,6 +1,98 @@
 ChangeLog for logilab.common
 ============================
 
+
+2013-01-21  -- 0.59.0
+
+    * registry:
+
+      - introduce RegistrableObject base class, mandatory to make
+        classes automatically registrable, and cleanup code
+        accordingly
+
+      - introduce objid and objname methods on Registry instead of
+        classid function and inlined code plus other refactorings to allow
+        arbitrary objects to be registered, provided they inherit from new
+        RegistrableInstance class (closes #98742)
+
+      - deprecate usage of leading underscore to skip object registration, using
+        __abstract__ explicitly is better and notion of registered object 'name'
+        is now somewhat fuzzy
+
+      - use register_all when no registration callback defined (closes #111011)
+
+    * logging_ext: on windows, use colorama to display colored logs, if available (closes #107436)
+
+    * packaging: remove references to ftp at logilab
+
+    * deprecations: really check them
+
+    * packaging: steal spec file from fedora (closes #113099)
+
+    * packaging force python2.6 on rhel5 (closes #113099)
+
+    * packaging Update download and project urls (closes #113099)
+
+    * configuration: enhance merge_options function (closes #113458)
+
+    * decorators: fix @monkeypatch decorator contract for dark corner
+      cases such as monkeypatching of a callable instance: no more
+      turned into an unbound method, which was broken in python 3 and
+      probably not used anywhere (actually closes #104047).
+
+2012-11-14  --  0.58.3
+    * date: fix ustrftime() impl. for python3 (closes #82161, patch by Arfrever
+      Frehtes Taifersar Arahesis) and encoding detection for python2 (closes
+      #109740)
+
+    * other python3 code and test fixes (closes #104047)
+
+    * registry: Store.setdefault shouldn't raise RegistryNotFound (closes #111010)
+
+    * table: stop encoding to iso-8859-1, use unicode (closes #105847)
+
+    * setup: properly install additional files during build instead of install (closes #104045)
+
+
+
+2012-07-30  --  0.58.2
+    * modutils: fixes (closes #100757 and #100935)
+
+
+
+2012-07-17  --  0.58.1
+    * modutils, testlib: be more python implementation independant (closes #99493 and #99627)
+
+
+
+2012-04-12  --  0.58.0
+    * new `registry` module containing a backport of CubicWeb selectable objects registry (closes #84654)
+
+    * testlib: DocTestCase fix builtins pollution after doctest execution.
+
+    * shellutil: add argument to ``ProgressBar.update`` to tune cursor progression (closes #88981)
+
+    * deprecated: new DeprecationWrapper class (closes #88942)
+
+
+
+2012-03-22  --  0.57.2
+    * texutils: apply_units raise ValueError if string isn'nt valid (closes #88808)
+
+    * daemon: don't call putenv directly
+
+    * pytest: do not enable extra warning other than DeprecationWarning.
+
+    * testlib: DocTestCase fix builtins pollution after doctest execution.
+
+    * testlib: replace sys.exit with raise ImportError (closes: #84159)
+
+    * fix license in README
+
+    * add trove classifiers (tell about python 3 support for pypi)
+
+
+
 2011-10-28  --  0.57.1
     * daemon: change $HOME after dropping privileges (closes #81297)
 
@@ -249,7 +341,7 @@ ChangeLog for logilab.common
       - backup_command is now backup_commands (eg return a list of commands)
       - each command returned in backup_commands/restore_commands may now
         be list that may be used as argument to subprocess.call, or a string
-	which will the requires a subshell
+        which will the requires a subshell
       - new sql_rename_col method
 
     * deprecation: deprecated now takes an optional 'stacklevel' argument, default to 2
@@ -263,9 +355,9 @@ ChangeLog for logilab.common
     * db / adbh: added SQL Server support using Pyodbc
 
     * db:
-	- New optional extra_args argument to get_connection.
-	- Support Windows Auth for SQLServer by giving
-	  extra_args='Trusted_Connection' to the sqlserver2005 driver
+        - New optional extra_args argument to get_connection.
+        - Support Windows Auth for SQLServer by giving
+          extra_args='Trusted_Connection' to the sqlserver2005 driver
 
 
 
@@ -438,7 +530,7 @@ ChangeLog for logilab.common
 2008-10-01  --  0.35.2
     * configuration:
       - fix #6011: lgc.configuration ignore customized option values
-      - fix #3278: man page generation broken	
+      - fix #3278: man page generation broken   
 
     * dropped context.py module which broke the debian package when
       some python <2.5 is installed (#5979)
@@ -589,7 +681,7 @@ ChangeLog for logilab.common
 
 2007-12-11  --  0.25.1
     * pytest: new --profile option, setup module / teardown module hook,
-	      other fixes and enhancements
+              other fixes and enhancements
 
     * db: mysql support fixes
 
@@ -638,7 +730,7 @@ ChangeLog for logilab.common
       meaning remaining args should not be checked
 
     * interface: new extend function to dynamically add an implemented interface
-      to a new style class	
+      to a new style class      
 
 
 
@@ -710,7 +802,7 @@ ChangeLog for logilab.common
       has been added
 
     * deprecated fileutils.[files_by_ext,include_files_by_ext,exclude_files_by_ext]
-      functions in favor of new function shellutils.find	
+      functions in favor of new function shellutils.find        
 
     * mark the following modules for deprecation, they will be removed in a
       near version:
@@ -939,8 +1031,8 @@ ChangeLog for logilab.common
     * shellutils: bug fix in mv()
 
     * compat:
- 	  - use set when available
-	  - added sorted and reversed
+          - use set when available
+          - added sorted and reversed
 
     * table: new methods and some optimizations
 

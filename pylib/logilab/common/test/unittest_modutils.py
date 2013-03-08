@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -128,6 +128,16 @@ class modpath_from_file_tc(ModutilsTestCase):
         self.assertRaises(Exception, modutils.modpath_from_file, '/turlututu')
 
 
+class load_module_from_path_tc(ModutilsTestCase):
+
+    def test_do_not_load_twice(self):
+        sys.path.insert(0, self.datadir)
+        foo = modutils.load_module_from_modpath(['lmfp', 'foo'])
+        lmfp = modutils.load_module_from_modpath(['lmfp'])
+        self.assertEqual(len(sys.just_once), 1)
+        sys.path.pop(0)
+        del sys.just_once
+
 class file_from_modpath_tc(ModutilsTestCase):
     """given a mod path (i.e. splited module / package name), return the
     corresponding file, giving priority to source file over precompiled file
@@ -175,7 +185,7 @@ class is_standard_module_tc(ModutilsTestCase):
     library
     """
 
-    def test_knownValues_is_standard_module_0(self):
+    def test_knownValues_is_standard_module_builtins(self):
         if sys.version_info < (3, 0):
             self.assertEqual(modutils.is_standard_module('__builtin__'), True)
             self.assertEqual(modutils.is_standard_module('builtins'), False)
@@ -183,29 +193,26 @@ class is_standard_module_tc(ModutilsTestCase):
             self.assertEqual(modutils.is_standard_module('__builtin__'), False)
             self.assertEqual(modutils.is_standard_module('builtins'), True)
 
-    def test_knownValues_is_standard_module_1(self):
+    def test_knownValues_is_standard_module_builtin(self):
         self.assertEqual(modutils.is_standard_module('sys'), True)
 
-    def test_knownValues_is_standard_module_2(self):
+    def test_knownValues_is_standard_module_nonstandard(self):
         self.assertEqual(modutils.is_standard_module('logilab'), False)
 
-    def test_knownValues_is_standard_module_3(self):
+    def test_knownValues_is_standard_module_unknown(self):
         self.assertEqual(modutils.is_standard_module('unknown'), False)
 
     def test_knownValues_is_standard_module_4(self):
-        if sys.version_info < (3, 0):
-            self.assertEqual(modutils.is_standard_module('StringIO'), True)
-        else:
-            self.assertEqual(modutils.is_standard_module('StringIO'), False)
-        if sys.version_info < (2, 6):
-            self.assertEqual(modutils.is_standard_module('io'), False)
-        else:
-            self.assertEqual(modutils.is_standard_module('io'), True)
+        self.assertEqual(modutils.is_standard_module('marshal'), True)
+        self.assertEqual(modutils.is_standard_module('hashlib'), True)
+        self.assertEqual(modutils.is_standard_module('pickle'), True)
+        self.assertEqual(modutils.is_standard_module('email'), True)
+        self.assertEqual(modutils.is_standard_module('io'), sys.version_info >= (2, 6))
+        self.assertEqual(modutils.is_standard_module('StringIO'), sys.version_info < (3, 0))
 
-    def test_knownValues_is_standard_module_5(self):
+    def test_knownValues_is_standard_module_custom_path(self):
         self.assertEqual(modutils.is_standard_module('data.module', (DATADIR,)), True)
         self.assertEqual(modutils.is_standard_module('data.module', (path.abspath(DATADIR),)), True)
-
 
 class is_relative_tc(ModutilsTestCase):
 
@@ -253,9 +260,9 @@ class get_modules_files_tc(ModutilsTestCase):
         del logilab.common.fileutils
         del sys.modules['logilab.common.fileutils']
         m = modutils.load_module_from_modpath(['logilab', 'common', 'fileutils'])
-        self.assert_( hasattr(logilab, 'common') )
-        self.assert_( hasattr(logilab.common, 'fileutils') )
-        self.assert_( m is logilab.common.fileutils )
+        self.assertTrue( hasattr(logilab, 'common') )
+        self.assertTrue( hasattr(logilab.common, 'fileutils') )
+        self.assertTrue( m is logilab.common.fileutils )
 
 from logilab.common.testlib import DocTest
 class ModuleDocTest(DocTest):

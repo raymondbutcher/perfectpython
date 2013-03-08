@@ -1,5 +1,5 @@
 # unit tests for the cache module
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -68,9 +68,9 @@ class CacheTestCase(TestCase):
         self.cache[4] = 'foz'
         self.cache[5] = 'fuz'
         self.cache[6] = 'spam'
-        self.assert_(1 not in self.cache,
+        self.assertTrue(1 not in self.cache,
                      'key 1 has not been suppressed from the cache dictionnary')
-        self.assert_(1 not in self.cache._usage,
+        self.assertTrue(1 not in self.cache._usage,
                      'key 1 has not been suppressed from the cache LRU list')
         self.assertEqual(len(self.cache._usage), 5, "lenght of usage list is not 5")
         self.assertEqual(self.cache._usage[-1], 6, '6 is not the most recently used key')
@@ -95,8 +95,8 @@ class CacheTestCase(TestCase):
         """
         self.cache['foo'] = 'bar'
         del self.cache['foo']
-        self.assert_('foo' not in self.cache.keys(), "Element 'foo' was not removed cache dictionnary")
-        self.assert_('foo' not in self.cache._usage, "Element 'foo' was not removed usage list")
+        self.assertTrue('foo' not in self.cache.keys(), "Element 'foo' was not removed cache dictionnary")
+        self.assertTrue('foo' not in self.cache._usage, "Element 'foo' was not removed usage list")
         self.assertItemsEqual(self.cache._usage,
                               self.cache.keys())# usage list and data keys are different
 

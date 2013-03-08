@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2013 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -19,6 +19,7 @@
 __docformat__ = "restructuredtext en"
 
 import sys
+import types
 from time import clock, time
 
 from logilab.common.compat import callable, method_type
@@ -249,7 +250,9 @@ def locked(acquire, release):
 
 
 def monkeypatch(klass, methodname=None):
-    """Decorator extending class with the decorated callable
+    """Decorator extending class with the decorated callable. This is basically
+    a syntactic sugar vs class assignment.
+
     >>> class A:
     ...     pass
     >>> @monkeypatch(A)
@@ -273,11 +276,6 @@ def monkeypatch(klass, methodname=None):
             raise AttributeError('%s has no __name__ attribute: '
                                  'you should provide an explicit `methodname`'
                                  % func)
-        if callable(func) and sys.version_info < (3, 0):
-            setattr(klass, name, method_type(func, None, klass))
-        else:
-            # likely a property
-            # this is quite borderline but usage already in the wild ...
-            setattr(klass, name, func)
+        setattr(klass, name, func)
         return func
     return decorator

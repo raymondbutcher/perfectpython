@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -65,14 +65,14 @@ class TableTC(TestCase):
 
     def test_indexation(self):
         """we should be able to use [] to access rows"""
-        self.assert_(self.table[0] == self.table.data[0])
-        self.assert_(self.table[1] == self.table.data[1])
+        self.assertTrue(self.table[0] == self.table.data[0])
+        self.assertTrue(self.table[1] == self.table.data[1])
 
     def test_iterable(self):
         """test iter(table)"""
         it = iter(self.table)
-        self.assert_(it.next() == self.table.data[0])
-        self.assert_(it.next() == self.table.data[1])
+        self.assertTrue(it.next() == self.table.data[0])
+        self.assertTrue(it.next() == self.table.data[1])
 
     def test_get_rows(self):
         """tests Table.get_rows()"""
@@ -308,7 +308,7 @@ class TableStyleSheetTC(TestCase):
         self.stylesheet.add_rowavg_rule((0, 2), 0, 0, 1)
         self.table.apply_stylesheet(self.stylesheet)
         val = self.table[0, 2]
-        self.assert_(int(val) == 15)
+        self.assertTrue(int(val) == 15)
 
 
     def test_rowsum_rule(self):
@@ -318,7 +318,7 @@ class TableStyleSheetTC(TestCase):
         self.stylesheet.add_rowsum_rule((0, 2), 0, 0, 1)
         self.table.apply_stylesheet(self.stylesheet)
         val = self.table[0, 2]
-        self.assert_(val == 30)
+        self.assertTrue(val == 30)
 
 
     def test_colavg_rule(self):
@@ -330,7 +330,7 @@ class TableStyleSheetTC(TestCase):
         self.stylesheet.add_colavg_rule((2, 0), 0, 0, 1)
         self.table.apply_stylesheet(self.stylesheet)
         val = self.table[2, 0]
-        self.assert_(int(val) == 11)
+        self.assertTrue(int(val) == 11)
 
 
     def test_colsum_rule(self):
@@ -342,7 +342,7 @@ class TableStyleSheetTC(TestCase):
         self.stylesheet.add_colsum_rule((2, 0), 0, 0, 1)
         self.table.apply_stylesheet(self.stylesheet)
         val = self.table[2, 0]
-        self.assert_(val == 22)
+        self.assertTrue(val == 22)
 
 
 

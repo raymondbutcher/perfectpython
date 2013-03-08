@@ -6,7 +6,7 @@ What's this ?
 
 This package contains some modules used by differents Logilab's projects.
 
-It is released under the GNU Public License.
+It is released under the GNU Lesser General Public License.
 
 There is no documentation available yet but the source code should be clean and
 well documented.
