@@ -214,7 +214,11 @@ class InspectBuilder(object):
         self._module = module
         if modname is None:
             modname = module.__name__
-        node = build_module(modname, module.__doc__)
+        try:
+            node = build_module(modname, module.__doc__)
+        except AttributeError:
+            # in jython, java modules have no __doc__ (see #109562)
+            node = build_module(modname)
         node.file = node.path = path and abspath(path) or path
         MANAGER.astng_cache[modname] = node
         node.package = hasattr(module, '__path__')
@@ -240,10 +244,14 @@ class InspectBuilder(object):
                 member = member.im_func
             if isfunction(member):
                 # verify this is not an imported function
-                if member.func_code.co_filename != getattr(self._module, '__file__', None):
+                filename = getattr(member.func_code, 'co_filename', None)
+                if filename is None:
+                    assert isinstance(member, object)
+                    object_build_methoddescriptor(node, member, name)
+                elif filename != getattr(self._module, '__file__', None):
                     attach_dummy_node(node, name, member)
-                    continue
-                object_build_function(node, member, name)
+                else:
+                    object_build_function(node, member, name)
             elif isbuiltin(member):
                 if self.imported_member(node, member, name):
                     #if obj is object:

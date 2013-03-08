@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: logilab-astng
-Version: 0.23.1
+Version: 0.24.2
 Summary: rebuild a new abstract syntax tree from Python's ast
 Home-page: http://www.logilab.org/project/logilab-astng
 Author: Logilab
@@ -62,3 +62,8 @@ Description: ASTNG
           python -m unittest discover -p "unittest*.py"
         
 Platform: UNKNOWN
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Software Development :: Quality Assurance
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
