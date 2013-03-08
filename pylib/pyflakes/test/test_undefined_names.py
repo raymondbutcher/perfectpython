@@ -1,7 +1,8 @@
 
 from _ast import PyCF_ONLY_AST
+from sys import version_info
 
-from twisted.trial.unittest import TestCase
+from unittest2 import skip, skipIf, TestCase
 
 from pyflakes import messages as m, checker
 from pyflakes.test import harness
@@ -25,6 +26,14 @@ class Test(harness.Test):
 
     def test_builtins(self):
         self.flakes('range(10)')
+
+
+    def test_builtinWindowsError(self):
+        """
+        C{WindowsError} is sometimes a builtin name, so no warning is emitted
+        for using it.
+        """
+        self.flakes('WindowsError')
 
 
     def test_magicGlobalsFile(self):
@@ -72,6 +81,7 @@ class Test(harness.Test):
         bar
         ''', m.ImportStarUsed, m.UndefinedName)
 
+    @skipIf(version_info >= (3,), 'obsolete syntax')
     def test_unpackedParameter(self):
         '''Unpacked function parameters create bindings'''
         self.flakes('''
@@ -79,13 +89,13 @@ class Test(harness.Test):
             bar; baz
         ''')
 
+    @skip("todo")
     def test_definedByGlobal(self):
         '''"global" can make an otherwise undefined name in another function defined'''
         self.flakes('''
         def a(): global fu; fu = 1
         def b(): fu
         ''')
-    test_definedByGlobal.todo = ''
 
     def test_globalInGlobalScope(self):
         """
@@ -94,7 +104,7 @@ class Test(harness.Test):
         self.flakes('''
         global x
         def foo():
-            print x
+            print(x)
         ''', m.UndefinedName)
 
     def test_del(self):
@@ -168,8 +178,8 @@ class Test(harness.Test):
                 def h(self):
                     a = x
                     x = None
-                    print x, a
-            print x
+                    print(x, a)
+            print(x)
         ''', m.UndefinedLocal)
 
 
@@ -210,6 +220,24 @@ class Test(harness.Test):
                 return a
         ''', m.UndefinedLocal)
 
+    def test_undefinedAugmentedAssignment(self):
+        self.flakes(
+            '''
+            def f(seq):
+                a = 0
+                seq[a] += 1
+                seq[b] /= 2
+                c[0] *= 2
+                a -= 3
+                d += 4
+                e[any] = 5
+            ''',
+            m.UndefinedName,    # b
+            m.UndefinedName,    # c
+            m.UndefinedName, m.UnusedVariable,  # d
+            m.UndefinedName,    # e
+        )
+
     def test_nestedClass(self):
         '''nested classes can access enclosing scope'''
         self.flakes('''
@@ -238,7 +266,67 @@ class Test(harness.Test):
         '''star and double-star arg names are defined'''
         self.flakes('''
         def f(a, *b, **c):
-            print a, b, c
+            print(a, b, c)
+        ''')
+
+    @skipIf(version_info < (3,), 'new in Python 3')
+    def test_definedAsStarUnpack(self):
+        '''star names in unpack are defined'''
+        self.flakes('''
+        a, *b = range(10)
+        print(a, b)
+        ''')
+        self.flakes('''
+        *a, b = range(10)
+        print(a, b)
+        ''')
+        self.flakes('''
+        a, *b, c = range(10)
+        print(a, b, c)
+        ''')
+
+    @skipIf(version_info < (3,), 'new in Python 3')
+    def test_keywordOnlyArgs(self):
+        '''kwonly arg names are defined'''
+        self.flakes('''
+        def f(*, a, b=None):
+            print(a, b)
+        ''')
+
+        self.flakes('''
+        import default_b
+        def f(*, a, b=default_b):
+            print(a, b)
+        ''')
+
+    @skipIf(version_info < (3,), 'new in Python 3')
+    def test_keywordOnlyArgsUndefined(self):
+        '''typo in kwonly name'''
+        self.flakes('''
+        def f(*, a, b=default_c):
+            print(a, b)
+        ''', m.UndefinedName)
+
+    @skipIf(version_info < (3,), 'new in Python 3')
+    def test_annotationUndefined(self):
+        """Undefined annotations"""
+        self.flakes('''
+        from abc import note1, note2, note3, note4, note5
+        def func(a: note1, *args: note2,
+                 b: note3=12, **kw: note4) -> note5: pass
+        ''')
+
+        self.flakes('''
+        def func():
+            d = e = 42
+            def func(a: {1, d}) -> (lambda c: e): pass
+        ''')
+
+    @skipIf(version_info < (3,), 'new in Python 3')
+    def test_metaClassUndefined(self):
+        self.flakes('''
+        from abc import ABCMeta
+        class A(metaclass=ABCMeta): pass
         ''')
 
     def test_definedInGenExp(self):
@@ -246,7 +334,8 @@ class Test(harness.Test):
         Using the loop variable of a generator expression results in no
         warnings.
         """
-        self.flakes('(a for a in xrange(10) if a)')
+        self.flakes('(a for a in %srange(10) if a)' %
+                    ('x' if version_info < (3,) else ''))
 
 
 

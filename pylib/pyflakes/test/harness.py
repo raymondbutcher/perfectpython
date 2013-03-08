@@ -2,12 +2,12 @@
 import textwrap
 import _ast
 
-from twisted.trial import unittest
+import unittest2
 
 from pyflakes import checker
 
 
-class Test(unittest.TestCase):
+class Test(unittest2.TestCase):
 
     def flakes(self, input, *expectedOutputs, **kw):
         ast = compile(textwrap.dedent(input), "<test>", "exec",
@@ -15,9 +15,9 @@ class Test(unittest.TestCase):
         w = checker.Checker(ast, **kw)
         outputs = [type(o) for o in w.messages]
         expectedOutputs = list(expectedOutputs)
-        outputs.sort()
-        expectedOutputs.sort()
-        self.assert_(outputs == expectedOutputs, '''\
+        outputs.sort(key=lambda t: t.__name__)
+        expectedOutputs.sort(key=lambda t: t.__name__)
+        self.assertEqual(outputs, expectedOutputs, '''\
 for input:
 %s
 expected outputs:

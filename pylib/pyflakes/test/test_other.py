@@ -6,6 +6,7 @@ Tests for various Pyflakes behavior.
 """
 
 from sys import version_info
+from unittest2 import skip, skipIf
 
 from pyflakes import messages as m
 from pyflakes.test import harness
@@ -16,6 +17,7 @@ class Test(harness.Test):
     def test_duplicateArgs(self):
         self.flakes('def fu(bar, bar): pass', m.DuplicateArgument)
 
+    @skip("todo: this requires finding all assignments in the function body first")
     def test_localReferencedBeforeAssignment(self):
         self.flakes('''
         a = 1
@@ -23,7 +25,35 @@ class Test(harness.Test):
             a; a=1
         f()
         ''', m.UndefinedName)
-    test_localReferencedBeforeAssignment.todo = 'this requires finding all assignments in the function body first'
+
+    def test_redefinedInListComp(self):
+        """
+        Test that shadowing a variable in a list comprehension raises
+        a warning.
+        """
+        self.flakes('''
+        a = 1
+        [1 for a, b in [(1, 2)]]
+        ''', m.RedefinedInListComp)
+        self.flakes('''
+        class A:
+            a = 1
+            [1 for a, b in [(1, 2)]]
+        ''', m.RedefinedInListComp)
+        self.flakes('''
+        def f():
+            a = 1
+            [1 for a, b in [(1, 2)]]
+        ''', m.RedefinedInListComp)
+        self.flakes('''
+        [1 for a, b in [(1, 2)]]
+        [1 for a, b in [(1, 2)]]
+        ''')
+        self.flakes('''
+        for a, b in [(1, 2)]:
+            pass
+        [1 for a, b in [(1, 2)]]
+        ''')
 
     def test_redefinedFunction(self):
         """
@@ -33,7 +63,7 @@ class Test(harness.Test):
         self.flakes('''
         def a(): pass
         def a(): pass
-        ''', m.RedefinedFunction)
+        ''', m.RedefinedWhileUnused)
 
     def test_redefinedClassFunction(self):
         """
@@ -44,7 +74,55 @@ class Test(harness.Test):
         class A:
             def a(): pass
             def a(): pass
-        ''', m.RedefinedFunction)
+        ''', m.RedefinedWhileUnused)
+
+    def test_redefinedIfElseFunction(self):
+        """
+        Test that shadowing a function definition twice in an if
+        and else block does not raise a warning.
+        """
+        self.flakes('''
+        if True:
+            def a(): pass
+        else:
+            def a(): pass
+        ''')
+
+    def test_redefinedIfFunction(self):
+        """
+        Test that shadowing a function definition within an if block
+        raises a warning.
+        """
+        self.flakes('''
+        if True:
+            def a(): pass
+            def a(): pass
+        ''', m.RedefinedWhileUnused)
+
+    def test_redefinedTryExceptFunction(self):
+        """
+        Test that shadowing a function definition twice in try
+        and except block does not raise a warning.
+        """
+        self.flakes('''
+        try:
+            def a(): pass
+        except:
+            def a(): pass
+        ''')
+
+    def test_redefinedTryFunction(self):
+        """
+        Test that shadowing a function definition within a try block
+        raises a warning.
+        """
+        self.flakes('''
+        try:
+            def a(): pass
+            def a(): pass
+        except:
+            pass
+        ''', m.RedefinedWhileUnused)
 
     def test_functionDecorator(self):
         """
@@ -68,6 +146,21 @@ class Test(harness.Test):
             def a(): pass
             a = classmethod(a)
         ''')
+
+    @skipIf(version_info < (2, 6), "Python >= 2.6 only")
+    def test_modernProperty(self):
+        self.flakes("""
+        class A:
+            @property
+            def t(self):
+                pass
+            @t.setter
+            def t(self, value):
+                pass
+            @t.deleter
+            def t(self):
+                pass
+        """)
 
     def test_unaryPlus(self):
         '''Don't die on unary +'''
@@ -109,6 +202,84 @@ class Test(harness.Test):
         ''')
 
 
+    def test_classRedefinition(self):
+        """
+        If a class is defined twice in the same module, a warning is emitted.
+        """
+        self.flakes(
+        '''
+        class Foo:
+            pass
+        class Foo:
+            pass
+        ''', m.RedefinedWhileUnused)
+
+
+    def test_functionRedefinedAsClass(self):
+        """
+        If a function is redefined as a class, a warning is emitted.
+        """
+        self.flakes(
+        '''
+        def Foo():
+            pass
+        class Foo:
+            pass
+        ''', m.RedefinedWhileUnused)
+
+
+    def test_classRedefinedAsFunction(self):
+        """
+        If a class is redefined as a function, a warning is emitted.
+        """
+        self.flakes(
+        '''
+        class Foo:
+            pass
+        def Foo():
+            pass
+        ''', m.RedefinedWhileUnused)
+
+
+    @skip("todo: Too hard to make this warn but other cases stay silent")
+    def test_doubleAssignment(self):
+        """
+        If a variable is re-assigned to without being used, no warning is
+        emitted.
+        """
+        self.flakes(
+        '''
+        x = 10
+        x = 20
+        ''', m.RedefinedWhileUnused)
+
+
+    def test_doubleAssignmentConditionally(self):
+        """
+        If a variable is re-assigned within a conditional, no warning is
+        emitted.
+        """
+        self.flakes(
+        '''
+        x = 10
+        if True:
+            x = 20
+        ''')
+
+
+    def test_doubleAssignmentWithUse(self):
+        """
+        If a variable is re-assigned to after being used, no warning is
+        emitted.
+        """
+        self.flakes(
+        '''
+        x = 10
+        y = x * 2
+        x = 20
+        ''')
+
+
     def test_comparison(self):
         """
         If a defined name is used on either side of any of the six comparison
@@ -128,7 +299,7 @@ class Test(harness.Test):
 
     def test_identity(self):
         """
-        If a deefined name is used on either side of an identity test, no
+        If a defined name is used on either side of an identity test, no
         warning is emitted.
         """
         self.flakes('''
@@ -184,6 +355,19 @@ class Test(harness.Test):
         [1, 2][x,:]
         ''')
 
+    def test_varAugmentedAssignment(self):
+        """Augmented assignment of a variable is supported. We don't care about var refs"""
+        self.flakes('''
+        foo = 0
+        foo += 1
+        ''')
+
+    def test_attrAugmentedAssignment(self):
+        """Augmented assignment of attributes is supported. We don't care about attr refs"""
+        self.flakes('''
+        foo = None
+        foo.bar += foo.baz
+        ''')
 
 
 class TestUnusedAssignment(harness.Test):
@@ -202,6 +386,28 @@ class TestUnusedAssignment(harness.Test):
         ''', m.UnusedVariable)
 
 
+    def test_unusedVariableAsLocals(self):
+        """
+        Using locals() it is perfectly valid to have unused variables
+        """
+        self.flakes('''
+        def a():
+            b = 1
+            return locals()
+        ''')
+
+    def test_unusedVariableNoLocals(self):
+        """
+        Using locals() in wrong scope should not matter
+        """
+        self.flakes('''
+        def a():
+            locals()
+            def a():
+                b = 1
+                return
+        ''', m.UnusedVariable)
+
     def test_assignToGlobal(self):
         """
         Assigning to a global and then not using that global is perfectly
@@ -212,6 +418,20 @@ class TestUnusedAssignment(harness.Test):
         def a():
             global b
             b = 1
+        ''')
+
+
+    @skipIf(version_info < (3,), 'new in Python 3')
+    def test_assignToNonlocal(self):
+        """
+        Assigning to a nonlocal and then not using that binding is perfectly
+        acceptable. Do not mistake it for an unused local variable.
+        """
+        self.flakes('''
+        b = b'0'
+        def a():
+            nonlocal b
+            b = b'1'
         ''')
 
 
@@ -326,14 +546,6 @@ class TestUnusedAssignment(harness.Test):
             return bar
         ''')
 
-
-
-class Python25Test(harness.Test):
-    """
-    Tests for checking of syntax only available in Python 2.5 and newer.
-    """
-    if version_info < (2, 5):
-        skip = "Python 2.5 required for if-else and with tests"
 
     def test_ifexp(self):
         """
@@ -548,15 +760,7 @@ class Python25Test(harness.Test):
             pass
         ''', m.UndefinedName)
 
-
-
-class Python27Test(harness.Test):
-    """
-    Tests for checking of syntax only available in Python 2.7 and newer.
-    """
-    if version_info < (2, 7):
-        skip = "Python 2.7 required for dict/set comprehension tests"
-
+    @skipIf(version_info < (2, 7), "Python >= 2.7 only")
     def test_dictComprehension(self):
         """
         Dict comprehensions are properly handled.
@@ -565,6 +769,7 @@ class Python27Test(harness.Test):
         a = {1: x for x in range(10)}
         ''')
 
+    @skipIf(version_info < (2, 7), "Python >= 2.7 only")
     def test_setComprehensionAndLiteral(self):
         """
         Set comprehensions are properly handled.
@@ -573,3 +778,47 @@ class Python27Test(harness.Test):
         a = {1, 2, 3}
         b = {x for x in range(10)}
         ''')
+
+    def test_exceptionUsedInExcept(self):
+        as_exc = ', ' if version_info < (2, 6) else ' as '
+        self.flakes('''
+        try: pass
+        except Exception%se: e
+        ''' % as_exc)
+
+        self.flakes('''
+        def download_review():
+            try: pass
+            except Exception%se: e
+        ''' % as_exc)
+
+    def test_exceptWithoutNameInFunction(self):
+        """
+        Don't issue false warning when an unnamed exception is used. Previously, there would be
+        a false warning, but only when the try..except was in a function
+        """
+        self.flakes('''
+        def foo():
+            try: pass
+            except Exception: pass
+        ''')
+
+    def test_augmentedAssignmentImportedFunctionCall(self):
+        """Consider a function that is called on the right part of an augassign operation to be
+        used.
+        """
+        self.flakes('''
+        from foo import bar
+        baz = 0
+        baz += bar()
+        ''')
+
+    @skipIf(version_info < (3, 3), 'new in Python 3.3')
+    def test_yieldFromUndefined(self):
+        """
+        Test C{yield from} statement
+        """
+        self.flakes('''
+        def bar():
+            yield from foo()
+        ''', m.UndefinedName)
