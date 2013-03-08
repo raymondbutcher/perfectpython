@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Komodo Project File - DO NOT EDIT -->
 <project id="ac011ada-c97f-e344-b8b0-38845829f10e" kpf_version="5" name="PerfectPython.komodoproject">
-<preference-set idref="ac011ada-c97f-e344-b8b0-38845829f10e">
+<preference-set idref="ac011ada-c97f-e344-b8b0-38845829f10e" id="project" preftype="project">
   <boolean id="configured">1</boolean>
   <boolean id="dedentOnColon">0</boolean>
   <string id="editAutoIndentStyle">smart</string>

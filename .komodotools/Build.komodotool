@@ -53,7 +53,7 @@
   ], 
   "trigger": "", 
   "rank": 100, 
-  "version": "1.0.7", 
+  "version": "1.0.11", 
   "async": 1, 
   "type": "macro", 
   "icon": "chrome://fugue/skin/icons/building--plus.png"
