@@ -63,3 +63,4 @@ except IOError, exc5: # this is fine
     print exc5
 except MyOtherError, exc5: # this is fine
     print exc5
+

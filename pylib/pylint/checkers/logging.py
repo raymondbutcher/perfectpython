@@ -22,6 +22,7 @@ from pylint.checkers import utils
 
 MSGS = {
     'W1201': ('Specify string format arguments as logging function parameters',
+             'logging-not-lazy',
              'Used when a logging statement has a call form of '
              '"logging.<logging method>(format_string % (format_args...))". '
              'Such calls should leave string interpolation to the logging '
@@ -32,14 +33,18 @@ MSGS = {
              'logged. For more, see '
              'http://www.python.org/dev/peps/pep-0282/.'),
     'E1200': ('Unsupported logging format character %r (%#02x) at index %d',
+              'logging-unsupported-format',
               'Used when an unsupported format character is used in a logging\
               statement format string.'),
     'E1201': ('Logging format string ends in middle of conversion specifier',
+              'logging-format-truncated',
               'Used when a logging statement format string terminates before\
               the end of a conversion specifier.'),
     'E1205': ('Too many arguments for logging format string',
+              'logging-too-many-args',
               'Used when a logging format string is given too few arguments.'),
     'E1206': ('Not enough arguments for logging format string',
+              'logging-too-few-args',
               'Used when a logging format string is given too many arguments'),
     }
 
@@ -75,8 +80,17 @@ class LoggingChecker(checkers.BaseChecker):
     def visit_callfunc(self, node):
         """Checks calls to (simple forms of) logging methods."""
         if (not isinstance(node.func, astng.Getattr)
-            or not isinstance(node.func.expr, astng.Name)
-            or node.func.expr.name != self._logging_name):
+            or not isinstance(node.func.expr, astng.Name)):
+            return
+        try:
+            logger_class = [inferred for inferred in node.func.expr.infer() if (
+                isinstance(inferred, astng.Instance)
+                and [ancestor for ancestor in inferred._proxied.ancestors() if (
+                    ancestor.name == 'Logger'
+                    and ancestor.parent.name == 'logging')])]
+        except astng.exceptions.InferenceError:
+            return
+        if (node.func.expr.name != self._logging_name and not logger_class):
             return
         self._check_convenience_methods(node)
         self._check_log_methods(node)
