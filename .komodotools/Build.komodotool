@@ -2,7 +2,9 @@
   "keyboard_shortcut": "", 
   "name": "Build", 
   "language": "JavaScript", 
-  "trigger_enabled": false, 
+  "trigger_enabled": "0", 
+  "rank": "100", 
+  "trigger": "trigger_postopen", 
   "value": [
     "/**", 
     " * Script to build an xpi, running koext build in the current project root.", 
@@ -23,7 +25,7 @@
     "  getService(Components.interfaces.koIDirs);", 
     "", 
     "var pythonExe = koDirs.pythonExe;", 
-    "var projectDir = ko.interpolate.interpolateString('%p');", 
+    "var projectDir = ko.interpolate.interpolateStrings('%p');", 
     "var scriptName = 'koext';", 
     "", 
     "if (appInfo.OS == 'WINNT') {", 
@@ -32,13 +34,7 @@
     "", 
     "var arr = [koDirs.sdkDir, 'bin', scriptName]", 
     "var app = os.path.joinlist(arr.length, arr);", 
-    "var cmd = ('\"'", 
-    "           + pythonExe", 
-    "           + '\" \"'", 
-    "           + app", 
-    "           + '\" build -i chrome.manifest -i chrome.p.manifest -d \"'", 
-    "           + projectDir", 
-    "           + '\"');", 
+    "var cmd = '\"'+pythonExe+'\" \"'+app+'\" build -d \"'+projectDir+'\"';", 
     "", 
     "if (appInfo.OS == 'WINNT') {", 
     "  cmd = '\"' + cmd + '\"';", 
@@ -49,12 +45,11 @@
     "ko.run.runEncodedCommand(window, cmd, function() {", 
     "  ko.statusBar.AddMessage('Build complete', 'projects', 5000, true);", 
     "  ko.projects.manager.saveProject(project);", 
-    "});"
+    "});", 
+    ""
   ], 
-  "trigger": "", 
-  "rank": 100, 
   "version": "1.0.11", 
-  "async": 1, 
+  "async": "0", 
   "type": "macro", 
-  "icon": "chrome://fugue/skin/icons/building--plus.png"
+  "icon": "chrome://famfamfamsilk/skin/icons/lightning_go.png"
 }
