@@ -1,6 +1,11 @@
 import logging
 
-from koLintResult import getProxiedEffectivePrefs
+try:
+    from koLintResult import getProxiedEffectivePrefs
+    haveKO8 = False
+except ImportError:
+    # KO8
+    haveKO8 = True
 
 
 LOG = logging.getLogger('perfectpython')
@@ -21,7 +26,10 @@ DEFAULTS = {
 class PrefSet(object):
 
     def __init__(self, request, scope):
-        self.prefset = getProxiedEffectivePrefs(request)
+        if haveKO8:
+            self.prefset = request.prefset
+        else:
+            self.prefset = getProxiedEffectivePrefs(request)
         self.scope = scope
 
     def _get_preference(self, getter, name, scope):

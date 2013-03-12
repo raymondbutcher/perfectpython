@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # pylint: disable=W0404,W0622,W0704,W0613
-# copyright 2003-2010 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of pylint.
@@ -38,9 +38,6 @@ except ImportError:
     from distutils.command import install_lib
     USE_SETUPTOOLS = 0
 
-# pylint needs to filter some test files expected to be wrong
-P3K_FILES_TO_IGNORE= ('test/input/func_noerror_encoding.py',
-                      'test/input/func_unknown_encoding.py',)
 try:
     # python3
     from distutils.command.build_py import build_py_2to3 as build_py
@@ -52,9 +49,6 @@ try:
         if self.packages:
             self.build_packages()
             self.build_package_data()
-        # filter test files
-        self.updated_files = [f for f in self.updated_files
-                              if not f.endswith(P3K_FILES_TO_IGNORE)]
         # 2to3
         self.run_2to3(self.updated_files)
         # Remaining base class code
@@ -104,8 +98,7 @@ def get_packages(directory, prefix):
     for package in os.listdir(directory):
         absfile = join(directory, package)
         if isdir(absfile):
-            if exists(join(absfile, '__init__.py')) or \
-                   package in ('test', 'tests'):
+            if exists(join(absfile, '__init__.py')):
                 if prefix:
                     result.append('%s.%s' % (prefix, package))
                 else:
@@ -146,6 +139,7 @@ class MyInstallLib(install_lib.install_lib):
                 shutil.rmtree(dest, ignore_errors=True)
                 shutil.copytree(directory, dest)
 
+
 def install(**kwargs):
     """setup entry point"""
     if USE_SETUPTOOLS:
@@ -163,9 +157,17 @@ def install(**kwargs):
     else:
         kwargs['package_dir'] = {modname : '.'}
         packages = [modname] + get_packages(os.getcwd(), modname)
-    if USE_SETUPTOOLS and install_requires:
-        kwargs['install_requires'] = install_requires
-        kwargs['dependency_links'] = dependency_links
+    if USE_SETUPTOOLS:
+        if install_requires:
+            kwargs['install_requires'] = install_requires
+            kwargs['dependency_links'] = dependency_links
+        kwargs['entry_points'] = {'console_scripts': [
+                'pylint = pylint:run_pylint',
+                'pylint-gui = pylint:run_pylint_gui',
+                'epylint = pylint:run_epylint',
+                'pyreverse = pylint:run_pyreverse',
+                'symilar = pylint:run_symilar',
+                ]}
     kwargs['packages'] = packages
     return setup(name = distname,
                  version = version,

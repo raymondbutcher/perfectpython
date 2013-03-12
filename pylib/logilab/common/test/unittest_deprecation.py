@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -28,10 +28,16 @@ class RawInputTC(TestCase):
     # XXX with 2.6 we could test warnings
     # http://docs.python.org/library/warnings.html#testing-warnings
     # instead we just make sure it does not crash
+
+    def mock_warn(self, *args, **kwargs):
+        self.messages.append(args[0])
+
     def setUp(self):
-        warnings.simplefilter("ignore")
+        self.messages = []
+        deprecation.warn = self.mock_warn
+
     def tearDown(self):
-        warnings.simplefilter("default")
+        deprecation.warn = warnings.warn
 
     def mk_func(self):
         def any_func():
@@ -41,28 +47,36 @@ class RawInputTC(TestCase):
     def test_class_deprecated(self):
         class AnyClass:
             __metaclass__ = deprecation.class_deprecated
+        AnyClass()
+        self.assertEqual(self.messages,
+                         ['AnyClass is deprecated'])
 
     def test_deprecated_func(self):
         any_func = deprecation.deprecated()(self.mk_func())
         any_func()
         any_func = deprecation.deprecated('message')(self.mk_func())
         any_func()
+        self.assertEqual(self.messages,
+                         ['The function "any_func" is deprecated', 'message'])
 
     def test_deprecated_decorator(self):
         @deprecation.deprecated()
         def any_func():
             pass
         any_func()
-
         @deprecation.deprecated('message')
         def any_func():
             pass
         any_func()
+        self.assertEqual(self.messages,
+                         ['The function "any_func" is deprecated', 'message'])
 
     def test_moved(self):
         module = 'data.deprecation'
         any_func = deprecation.moved(module, 'moving_target')
         any_func()
+        self.assertEqual(self.messages,
+                         ['object moving_target has been moved to module data.deprecation'])
 
 if __name__ == '__main__':
     unittest_main()

@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -110,3 +110,21 @@ def moved(modpath, objname):
     return callnew
 
 
+
+class DeprecationWrapper(object):
+    """proxy to print a warning on access to any attribute of the wrapped object
+    """
+    def __init__(self, proxied, msg=None):
+        self._proxied = proxied
+        self._msg = msg
+
+    def __getattr__(self, attr):
+        warn(self._msg, DeprecationWarning, stacklevel=2)
+        return getattr(self._proxied, attr)
+
+    def __setattr__(self, attr, value):
+        if attr in ('_proxied', '_msg'):
+            self.__dict__[attr] = value
+        else:
+            warn(self._msg, DeprecationWarning, stacklevel=2)
+            setattr(self._proxied, attr, value)

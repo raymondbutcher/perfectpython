@@ -46,7 +46,7 @@ def setugid(user):
             raise OSError(err, os.strerror(err), 'initgroups')
     os.setgid(passwd.pw_gid)
     os.setuid(passwd.pw_uid)
-    os.putenv('HOME', passwd.pw_dir)
+    os.environ['HOME'] = passwd.pw_dir
 
 
 def daemonize(pidfile=None, uid=None, umask=077):

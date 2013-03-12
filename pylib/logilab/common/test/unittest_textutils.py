@@ -184,6 +184,12 @@ class UnitsTC(TestCase):
         result = tu.apply_units('1 000 KB', self.units)
         self.assertEqual(result, 1000 * self.units['kb'])
 
+    def test_unit_wrong_input(self):
+        self.assertRaises(ValueError, tu.apply_units, '', self.units)
+        self.assertRaises(ValueError, tu.apply_units, 'wrong input', self.units)
+        self.assertRaises(ValueError, tu.apply_units, 'wrong13 input', self.units)
+        self.assertRaises(ValueError, tu.apply_units, 'wrong input42', self.units)
+
 RGX = re.compile('abcd')
 class PrettyMatchTC(TestCase):
 
@@ -246,9 +252,8 @@ class UnormalizeTC(TestCase):
                          'ab _ cd')
 
     def test_unormalize_backward_compat(self):
-        self.assertRaises(ValueError, tu.unormalize, u"\u8000",
-                          ignorenonascii=False)
-        self.assertEqual(tu.unormalize(u"\u8000", ignorenonascii=True), u'')
+        self.assertRaises(ValueError, tu.unormalize, u"\u8000")
+        self.assertEqual(tu.unormalize(u"\u8000", substitute=''), u'')
 
 
 class ModuleDocTest(DocTest):

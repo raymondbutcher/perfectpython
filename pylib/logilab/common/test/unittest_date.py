@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -147,7 +147,7 @@ class MxDateTC(DateTC):
 
     def check_mx(self):
         if mxDate is None:
-            self.skip('mx.DateTime is not installed')
+            self.skipTest('mx.DateTime is not installed')
 
     def setUp(self):
         self.check_mx()

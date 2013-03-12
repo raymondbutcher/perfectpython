@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -73,10 +73,10 @@ class ExportTC(TestCase):
 
     def test(self):
         export(DATA_DIR, self.tempdir, verbose=0)
-        self.assert_(exists(join(self.tempdir, '__init__.py')))
-        self.assert_(exists(join(self.tempdir, 'sub')))
-        self.assert_(not exists(join(self.tempdir, '__init__.pyc')))
-        self.assert_(not exists(join(self.tempdir, 'CVS')))
+        self.assertTrue(exists(join(self.tempdir, '__init__.py')))
+        self.assertTrue(exists(join(self.tempdir, 'sub')))
+        self.assertTrue(not exists(join(self.tempdir, '__init__.pyc')))
+        self.assertTrue(not exists(join(self.tempdir, 'CVS')))
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -93,50 +93,52 @@ class ProtectedFileTC(TestCase):
     def test_mode_change(self):
         """tests that mode is changed when needed"""
         # test on non-writable file
-        #self.assert_(not os.access(self.rpath, os.W_OK))
-        self.assert_(not os.stat(self.rpath).st_mode & S_IWRITE)
+        #self.assertTrue(not os.access(self.rpath, os.W_OK))
+        self.assertTrue(not os.stat(self.rpath).st_mode & S_IWRITE)
         wp_file = ProtectedFile(self.rpath, 'w')
-        self.assert_(os.stat(self.rpath).st_mode & S_IWRITE)
-        self.assert_(os.access(self.rpath, os.W_OK))
+        self.assertTrue(os.stat(self.rpath).st_mode & S_IWRITE)
+        self.assertTrue(os.access(self.rpath, os.W_OK))
         # test on writable-file
-        self.assert_(os.stat(self.rwpath).st_mode & S_IWRITE)
-        self.assert_(os.access(self.rwpath, os.W_OK))
+        self.assertTrue(os.stat(self.rwpath).st_mode & S_IWRITE)
+        self.assertTrue(os.access(self.rwpath, os.W_OK))
         wp_file = ProtectedFile(self.rwpath, 'w')
-        self.assert_(os.stat(self.rwpath).st_mode & S_IWRITE)
-        self.assert_(os.access(self.rwpath, os.W_OK))
+        self.assertTrue(os.stat(self.rwpath).st_mode & S_IWRITE)
+        self.assertTrue(os.access(self.rwpath, os.W_OK))
 
     def test_restore_on_close(self):
         """tests original mode is restored on close"""
         # test on non-writable file
-        #self.assert_(not os.access(self.rpath, os.W_OK))
-        self.assert_(not os.stat(self.rpath).st_mode & S_IWRITE)
+        #self.assertTrue(not os.access(self.rpath, os.W_OK))
+        self.assertTrue(not os.stat(self.rpath).st_mode & S_IWRITE)
         ProtectedFile(self.rpath, 'w').close()
-        #self.assert_(not os.access(self.rpath, os.W_OK))
-        self.assert_(not os.stat(self.rpath).st_mode & S_IWRITE)
+        #self.assertTrue(not os.access(self.rpath, os.W_OK))
+        self.assertTrue(not os.stat(self.rpath).st_mode & S_IWRITE)
         # test on writable-file
-        self.assert_(os.access(self.rwpath, os.W_OK))
-        self.assert_(os.stat(self.rwpath).st_mode & S_IWRITE)
+        self.assertTrue(os.access(self.rwpath, os.W_OK))
+        self.assertTrue(os.stat(self.rwpath).st_mode & S_IWRITE)
         ProtectedFile(self.rwpath, 'w').close()
-        self.assert_(os.access(self.rwpath, os.W_OK))
-        self.assert_(os.stat(self.rwpath).st_mode & S_IWRITE)
+        self.assertTrue(os.access(self.rwpath, os.W_OK))
+        self.assertTrue(os.stat(self.rwpath).st_mode & S_IWRITE)
 
     def test_mode_change_on_append(self):
         """tests that mode is changed when file is opened in 'a' mode"""
-        #self.assert_(not os.access(self.rpath, os.W_OK))
-        self.assert_(not os.stat(self.rpath).st_mode & S_IWRITE)
+        #self.assertTrue(not os.access(self.rpath, os.W_OK))
+        self.assertTrue(not os.stat(self.rpath).st_mode & S_IWRITE)
         wp_file = ProtectedFile(self.rpath, 'a')
-        self.assert_(os.access(self.rpath, os.W_OK))
-        self.assert_(os.stat(self.rpath).st_mode & S_IWRITE)
+        self.assertTrue(os.access(self.rpath, os.W_OK))
+        self.assertTrue(os.stat(self.rpath).st_mode & S_IWRITE)
         wp_file.close()
-        #self.assert_(not os.access(self.rpath, os.W_OK))
-        self.assert_(not os.stat(self.rpath).st_mode & S_IWRITE)
+        #self.assertTrue(not os.access(self.rpath, os.W_OK))
+        self.assertTrue(not os.stat(self.rpath).st_mode & S_IWRITE)
 
 
 from logilab.common.testlib import DocTest
-class ModuleDocTest(DocTest):
-    """relative_path embed tests in docstring"""
-    from logilab.common import fileutils as module
-    skipped = ('abspath_listdir',)
+if sys.version_info < (3, 0):
+    # skip if python3, test fail because of traceback display incompatibility :(
+    class ModuleDocTest(DocTest):
+        """relative_path embed tests in docstring"""
+        from logilab.common import fileutils as module
+        skipped = ('abspath_listdir',)
 
 
 del DocTest # necessary if we don't want it to be executed (we don't...)

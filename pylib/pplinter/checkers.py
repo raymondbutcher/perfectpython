@@ -99,7 +99,7 @@ class Pep8Checker(Checker):
     def get_ignored_ids(self):
         if not self.max_line_length:
             return 'E501'
-        return 'none'
+        return None
 
     @staticmethod
     def get_severity(problem):
@@ -118,17 +118,25 @@ class Pep8Checker(Checker):
     @property
     def output(self):
 
-        options = [self.path, '--repeat']
-
-        options.extend(('--ignore', self.get_ignored_ids()))
-
         stdout, sys.stdout = sys.stdout, StringIO.StringIO()
         try:
 
             import pep8
             pep8.MAX_LINE_LENGTH = self.max_line_length or 79
-            pep8.process_options(options)
-            pep8.input_file(self.path)
+
+            pep8style = pep8.StyleGuide(parse_argv=False, config_file=True)
+            options = pep8style.options
+            ignored = self.get_ignored_ids()
+            if ignored is not None:
+                options.ignore.append(ignored)
+            if options.doctest or options.testsuite:
+                from testsuite.support import run_tests
+                report = run_tests(pep8style)
+            else:
+                report = pep8style.input_file(self.path)
+            if options.testsuite and not options.quiet:
+                report.print_results()
+
             return sys.stdout.getvalue().strip()
 
         finally:

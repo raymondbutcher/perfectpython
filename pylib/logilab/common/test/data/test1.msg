@@ -13,7 +13,7 @@ To: Nicolas Chauvat <nico@logilab.fr>
 Subject: autre message
 Message-ID: <20050720100320.GA8371@logilab.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 User-Agent: Mutt/1.5.9i
@@ -26,5 +26,5 @@ bonjour
 -- 
 Nicolas Chauvat
 
-logilab.fr - services en informatique avancée et gestion de connaissances  
+logilab.fr - services en informatique avancÃ©e et gestion de connaissances  
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2003-2007 LOGILAB S.A. (Paris, FRANCE).
+# Copyright (c) 2003-2012 LOGILAB S.A. (Paris, FRANCE).
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
 # Foundation; either version 2 of the License, or (at your option) any later
@@ -16,6 +16,7 @@ import sys
 import os
 import tempfile
 from shutil import rmtree
+from os import getcwd, chdir
 from os.path import join, basename, dirname, isdir, abspath
 from cStringIO import StringIO
 
@@ -25,7 +26,9 @@ from logilab.common.compat import reload
 from pylint import config
 from pylint.lint import PyLinter, Run, UnknownMessage, preprocess_options, \
      ArgumentPreprocessingError
-from pylint.utils import sort_msgs, PyLintASTWalker
+from pylint.utils import sort_msgs, PyLintASTWalker, MSG_STATE_SCOPE_CONFIG, \
+     MSG_STATE_SCOPE_MODULE
+
 from pylint import checkers
 
 class SortMessagesTC(TestCase):
@@ -88,7 +91,7 @@ class PyLinterTC(TestCase):
 
     def test_message_help(self):
         msg = self.linter.get_message_help('F0001', checkerref=True)
-        expected = ':F0001:\n  Used when an error occurred preventing the analysis of a module (unable to\n  find it for instance). This message belongs to the master checker.'
+        expected = ':F0001 (fatal):\n  Used when an error occurred preventing the analysis of a module (unable to\n  find it for instance). This message belongs to the master checker.'
         self.assertMultiLineEqual(msg, expected)
         self.assertRaises(UnknownMessage, self.linter.get_message_help, 'YB12')
 
@@ -96,39 +99,54 @@ class PyLinterTC(TestCase):
         linter = self.linter
         linter.open()
         linter.set_current_module('toto')
-        self.assert_(linter.is_message_enabled('W0101'))
-        self.assert_(linter.is_message_enabled('W0102'))
+        self.assertTrue(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('W0102'))
         linter.disable('W0101', scope='package')
         linter.disable('W0102', scope='module', line=1)
-        self.assert_(not linter.is_message_enabled('W0101'))
-        self.assert_(not linter.is_message_enabled('W0102', 1))
+        self.assertFalse(linter.is_message_enabled('W0101'))
+        self.assertFalse(linter.is_message_enabled('W0102', 1))
         linter.set_current_module('tutu')
-        self.assert_(not linter.is_message_enabled('W0101'))
-        self.assert_(linter.is_message_enabled('W0102'))
+        self.assertFalse(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('W0102'))
         linter.enable('W0101', scope='package')
         linter.enable('W0102', scope='module', line=1)
-        self.assert_(linter.is_message_enabled('W0101'))
-        self.assert_(linter.is_message_enabled('W0102', 1))
+        self.assertTrue(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('W0102', 1))
 
     def test_enable_message_category(self):
         linter = self.linter
         linter.open()
         linter.set_current_module('toto')
-        self.assert_(linter.is_message_enabled('W0101'))
-        self.assert_(linter.is_message_enabled('C0121'))
+        self.assertTrue(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('C0121'))
         linter.disable('W', scope='package')
         linter.disable('C', scope='module', line=1)
-        self.assert_(not linter.is_message_enabled('W0101'))
-        self.assert_(linter.is_message_enabled('C0121'))
-        self.assert_(not linter.is_message_enabled('C0121', line=1))
+        self.assertFalse(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('C0121'))
+        self.assertFalse(linter.is_message_enabled('C0121', line=1))
         linter.set_current_module('tutu')
-        self.assert_(not linter.is_message_enabled('W0101'))
-        self.assert_(linter.is_message_enabled('C0121'))
+        self.assertFalse(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('C0121'))
         linter.enable('W', scope='package')
         linter.enable('C', scope='module', line=1)
-        self.assert_(linter.is_message_enabled('W0101'))
-        self.assert_(linter.is_message_enabled('C0121'))
-        self.assert_(linter.is_message_enabled('C0121', line=1))
+        self.assertTrue(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('C0121'))
+        self.assertTrue(linter.is_message_enabled('C0121', line=1))
+
+    def test_message_state_scope(self):
+        linter = self.linter
+        linter.open()
+        linter.disable('C0121')
+        self.assertEqual(MSG_STATE_SCOPE_CONFIG,
+                         linter.get_message_state_scope('C0121'))
+        linter.disable('W0101', scope='module', line=3)
+        self.assertEqual(MSG_STATE_SCOPE_CONFIG,
+                         linter.get_message_state_scope('C0121'))
+        self.assertEqual(MSG_STATE_SCOPE_MODULE,
+                         linter.get_message_state_scope('W0101', 3))
+        linter.enable('W0102', scope='module', line=3)
+        self.assertEqual(MSG_STATE_SCOPE_MODULE,
+                         linter.get_message_state_scope('W0102', 3))
 
     def test_enable_message_block(self):
         linter = self.linter
@@ -139,50 +157,94 @@ class PyLinterTC(TestCase):
         linter.process_module(astng)
         orig_state = linter._module_msgs_state.copy()
         linter._module_msgs_state = {}
+        linter._suppression_mapping = {}
         linter.collect_block_lines(astng, orig_state)
         # global (module level)
-        self.assert_(linter.is_message_enabled('W0613'))
-        self.assert_(linter.is_message_enabled('E1101'))
+        self.assertTrue(linter.is_message_enabled('W0613'))
+        self.assertTrue(linter.is_message_enabled('E1101'))
         # meth1
-        self.assert_(linter.is_message_enabled('W0613', 13))
+        self.assertTrue(linter.is_message_enabled('W0613', 13))
         # meth2
-        self.assert_(not linter.is_message_enabled('W0613', 18))
+        self.assertFalse(linter.is_message_enabled('W0613', 18))
         # meth3
-        self.assert_(not linter.is_message_enabled('E1101', 24))
-        self.assert_(linter.is_message_enabled('E1101', 26))
+        self.assertFalse(linter.is_message_enabled('E1101', 24))
+        self.assertTrue(linter.is_message_enabled('E1101', 26))
         # meth4
-        self.assert_(not linter.is_message_enabled('E1101', 32))
-        self.assert_(linter.is_message_enabled('E1101', 36))
+        self.assertFalse(linter.is_message_enabled('E1101', 32))
+        self.assertTrue(linter.is_message_enabled('E1101', 36))
         # meth5
-        self.assert_(not linter.is_message_enabled('E1101', 42))
-        self.assert_(not linter.is_message_enabled('E1101', 43))
-        self.assert_(linter.is_message_enabled('E1101', 46))
-        self.assert_(not linter.is_message_enabled('E1101', 49))
-        self.assert_(not linter.is_message_enabled('E1101', 51))
+        self.assertFalse(linter.is_message_enabled('E1101', 42))
+        self.assertFalse(linter.is_message_enabled('E1101', 43))
+        self.assertTrue(linter.is_message_enabled('E1101', 46))
+        self.assertFalse(linter.is_message_enabled('E1101', 49))
+        self.assertFalse(linter.is_message_enabled('E1101', 51))
         # meth6
-        self.assert_(not linter.is_message_enabled('E1101', 57))
-        self.assert_(linter.is_message_enabled('E1101', 61))
-        self.assert_(not linter.is_message_enabled('E1101', 64))
-        self.assert_(not linter.is_message_enabled('E1101', 66))
+        self.assertFalse(linter.is_message_enabled('E1101', 57))
+        self.assertTrue(linter.is_message_enabled('E1101', 61))
+        self.assertFalse(linter.is_message_enabled('E1101', 64))
+        self.assertFalse(linter.is_message_enabled('E1101', 66))
 
-        self.assert_(linter.is_message_enabled('E0602', 57))
-        self.assert_(linter.is_message_enabled('E0602', 61))
-        self.assert_(not linter.is_message_enabled('E0602', 62))
-        self.assert_(linter.is_message_enabled('E0602', 64))
-        self.assert_(linter.is_message_enabled('E0602', 66))
+        self.assertTrue(linter.is_message_enabled('E0602', 57))
+        self.assertTrue(linter.is_message_enabled('E0602', 61))
+        self.assertFalse(linter.is_message_enabled('E0602', 62))
+        self.assertTrue(linter.is_message_enabled('E0602', 64))
+        self.assertTrue(linter.is_message_enabled('E0602', 66))
         # meth7
-        self.assert_(not linter.is_message_enabled('E1101', 70))
-        self.assert_(linter.is_message_enabled('E1101', 72))
-        self.assert_(linter.is_message_enabled('E1101', 75))
-        self.assert_(linter.is_message_enabled('E1101', 77))
+        self.assertFalse(linter.is_message_enabled('E1101', 70))
+        self.assertTrue(linter.is_message_enabled('E1101', 72))
+        self.assertTrue(linter.is_message_enabled('E1101', 75))
+        self.assertTrue(linter.is_message_enabled('E1101', 77))
+
+        self.assertEqual(17, linter._suppression_mapping['W0613', 18])
+        self.assertEqual(30, linter._suppression_mapping['E1101', 33])
+        self.assert_(('E1101', 46) not in linter._suppression_mapping)
+        self.assertEqual(1, linter._suppression_mapping['C0302', 18])
+        self.assertEqual(1, linter._suppression_mapping['C0302', 50])
+        # This is tricky. While the disable in line 106 is disabling
+        # both 108 and 110, this is usually not what the user wanted.
+        # Therefore, we report the closest previous disable comment.
+        self.assertEqual(106, linter._suppression_mapping['E1101', 108])
+        self.assertEqual(109, linter._suppression_mapping['E1101', 110])
+
+    def test_enable_by_symbol(self):
+        """messages can be controlled by symbolic names.
+
+        The state is consistent across symbols and numbers.
+        """
+        linter = self.linter
+        linter.open()
+        linter.set_current_module('toto')
+        self.assertTrue(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('unreachable'))
+        self.assertTrue(linter.is_message_enabled('W0102'))
+        self.assertTrue(linter.is_message_enabled('dangerous-default-value'))
+        linter.disable('unreachable', scope='package')
+        linter.disable('dangerous-default-value', scope='module', line=1)
+        self.assertFalse(linter.is_message_enabled('W0101'))
+        self.assertFalse(linter.is_message_enabled('unreachable'))
+        self.assertFalse(linter.is_message_enabled('W0102', 1))
+        self.assertFalse(linter.is_message_enabled('dangerous-default-value', 1))
+        linter.set_current_module('tutu')
+        self.assertFalse(linter.is_message_enabled('W0101'))
+        self.assertFalse(linter.is_message_enabled('unreachable'))
+        self.assertTrue(linter.is_message_enabled('W0102'))
+        self.assertTrue(linter.is_message_enabled('dangerous-default-value'))
+        linter.enable('unreachable', scope='package')
+        linter.enable('dangerous-default-value', scope='module', line=1)
+        self.assertTrue(linter.is_message_enabled('W0101'))
+        self.assertTrue(linter.is_message_enabled('unreachable'))
+        self.assertTrue(linter.is_message_enabled('W0102', 1))
+        self.assertTrue(linter.is_message_enabled('dangerous-default-value', 1))
 
     def test_list_messages(self):
         sys.stdout = StringIO()
         try:
-            # just invoke it, don't check the output
             self.linter.list_messages()
+            output = sys.stdout.getvalue()
         finally:
             sys.stdout = sys.__stdout__
+        # cursory examination of the output: we're mostly testing it completes
+        self.assertTrue(':C0112 (empty-docstring): *Empty docstring*' in output)
 
     def test_lint_ext_module_with_file_output(self):
         if sys.version_info < (3, 0):
@@ -193,8 +255,8 @@ class PyLinterTC(TestCase):
         pylint_strio = 'pylint_%s.txt' % strio
         try:
             self.linter.check(strio)
-            self.assert_(os.path.exists(pylint_strio))
-            self.assert_(os.path.exists('pylint_global.txt'))
+            self.assertTrue(os.path.exists(pylint_strio))
+            self.assertTrue(os.path.exists('pylint_global.txt'))
         finally:
             try:
                 os.remove(pylint_strio)
@@ -209,19 +271,38 @@ class PyLinterTC(TestCase):
         self.linter.enable('RP0001')
         self.assertEqual(self.linter.report_is_enabled('RP0001'), True)
 
+    def test_report_output_format_aliased(self):
+        self.linter.set_option('output-format', 'text')
+        self.assertEqual(self.linter.reporter.__class__.__name__, 'TextReporter')
+
+    def test_report_output_format_custom(self):
+        this_module = sys.modules[__name__]
+        class TestReporter(object):
+            pass
+        this_module.TestReporter = TestReporter
+        class_name = ".".join((this_module.__name__, 'TestReporter'))
+        self.linter.set_option('output-format', class_name)
+        self.assertEqual(self.linter.reporter.__class__.__name__, 'TestReporter')
+
     def test_set_option_1(self):
         linter = self.linter
         linter.set_option('disable', 'C0111,W0142')
-        self.assert_(not linter.is_message_enabled('C0111'))
-        self.assert_(not linter.is_message_enabled('W0142'))
-        self.assert_(linter.is_message_enabled('W0113'))
+        self.assertFalse(linter.is_message_enabled('C0111'))
+        self.assertFalse(linter.is_message_enabled('W0142'))
+        self.assertTrue(linter.is_message_enabled('W0113'))
+        self.assertFalse(linter.is_message_enabled('missing-docstring'))
+        self.assertFalse(linter.is_message_enabled('star-args'))
+        # no name for W0113
 
     def test_set_option_2(self):
         linter = self.linter
         linter.set_option('disable', ('C0111', 'W0142') )
-        self.assert_(not linter.is_message_enabled('C0111'))
-        self.assert_(not linter.is_message_enabled('W0142'))
-        self.assert_(linter.is_message_enabled('W0113'))
+        self.assertFalse(linter.is_message_enabled('C0111'))
+        self.assertFalse(linter.is_message_enabled('W0142'))
+        self.assertTrue(linter.is_message_enabled('W0113'))
+        self.assertFalse(linter.is_message_enabled('missing-docstring'))
+        self.assertFalse(linter.is_message_enabled('star-args'))
+        # no name for W0113
 
     def test_enable_checkers(self):
         self.linter.disable('design')
@@ -239,25 +320,18 @@ class PyLinterTC(TestCase):
         self.assertFalse(any(name in checker_names for name in should_not))
 
     def test_disable_similar(self):
-        # XXX we have to disable them both, that's no good
-        self.linter.set_option('reports', False)
+        self.linter.set_option('disable', 'RP0801')
         self.linter.set_option('disable', 'R0801')
         self.assertFalse('similarities' in [c.name for c in self.linter.prepare_checkers()])
 
     def test_disable_alot(self):
         """check that we disabled a lot of checkers"""
         self.linter.set_option('reports', False)
-        # FIXME should it be necessary to explicitly desactivate failures ?
         self.linter.set_option('disable', 'R,C,W')
         checker_names = [c.name for c in self.linter.prepare_checkers()]
-        should_not = ('design', 'metrics', 'similarities')
-        rest = [name for name in checker_names if name in should_not]
-        self.assertListEqual(rest, [])
-        self.linter.set_option('disable', 'R,C,W,F')
-        checker_names = [c.name for c in self.linter.prepare_checkers()]
-        should_not +=  ('format', 'imports')
-        rest = [name for name in checker_names if name in should_not]
-        self.assertListEqual(rest, [])
+        for cname in  ('design', 'metrics', 'similarities',
+                       'imports'): # as a Fatal message that should be ignored
+            self.assertFalse(cname in checker_names, cname)
 
 
 class ConfigTC(TestCase):
@@ -305,6 +379,13 @@ class ConfigTC(TestCase):
 
     def test_pylintrc_parentdir(self):
         chroot = tempfile.mkdtemp()
+
+        # Get real path of tempfile, otherwise test fail on mac os x
+        cdir = getcwd()
+        chdir(chroot)
+        chroot = abspath('.')
+        chdir(cdir)
+
         try:
             create_files(['a/pylintrc', 'a/b/__init__.py', 'a/b/pylintrc',
                           'a/b/c/__init__.py', 'a/b/c/d/__init__.py'], chroot)
@@ -332,6 +413,13 @@ class ConfigTC(TestCase):
 
     def test_pylintrc_parentdir_no_package(self):
         chroot = tempfile.mkdtemp()
+
+        # Get real path of tempfile, otherwise test fail on mac os x
+        cdir = getcwd()
+        chdir(chroot)
+        chroot = abspath('.')
+        chdir(cdir)
+
         fake_home = tempfile.mkdtemp('fake-home')
         home = os.environ['HOME']
         os.environ['HOME'] = fake_home

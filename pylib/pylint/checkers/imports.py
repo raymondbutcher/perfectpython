@@ -1,4 +1,4 @@
-# Copyright (c) 2003-2010 LOGILAB S.A. (Paris, FRANCE).
+# Copyright (c) 2003-2012 LOGILAB S.A. (Paris, FRANCE).
 # http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This program is free software; you can redistribute it and/or modify it under
@@ -29,19 +29,25 @@ from pylint.checkers import BaseChecker, EmptyReport
 def get_first_import(node, context, name, base, level):
     """return the node where [base.]<name> is imported or None if not found
     """
+    fullname = '%s.%s' % (base, name) if base else name
+
     first = None
     found = False
-    for first in context.values():
+    for first in context.body:
+        if first is node:
+            continue
+        if first.scope() is node.scope() and first.fromlineno > node.fromlineno:
+            continue
         if isinstance(first, astng.Import):
-            if name in [iname[0] for iname in first.names]:
+            if any(fullname == iname[0] for iname in first.names):
                 found = True
                 break
         elif isinstance(first, astng.From):
-            if base == first.modname and level == first.level and \
-                   name in [iname[0] for iname in first.names]:
+            if level == first.level and any(
+                fullname == '%s.%s' % (first.modname, iname[0]) for iname in first.names):
                 found = True
                 break
-    if found and first is not node and not are_exclusive(first, node):
+    if found and not are_exclusive(first, node):
         return first
 
 # utilities to represents import dependencies as tree and dot graph ###########
@@ -56,7 +62,7 @@ def filter_dependencies_info(dep_info, package_dir, mode='external'):
         assert mode == 'internal'
         filter_func = lambda x: is_standard_module(x, (package_dir,))
     result = {}
-    for importee, importers in dep_info.items():
+    for importee, importers in dep_info.iteritems():
         if filter_func(importee):
             result[importee] = importers
     return result
@@ -86,7 +92,7 @@ def repr_tree_defs(data, indent_str=None):
             lines.append('%s %s' % (mod, files))
             sub_indent_str = '  '
         else:
-            lines.append('%s\-%s %s' % (indent_str, mod, files))
+            lines.append(r'%s\-%s %s' % (indent_str, mod, files))
             if i == len(nodes)-1:
                 sub_indent_str = '%s  ' % indent_str
             else:
@@ -102,14 +108,14 @@ def dependencies_graph(filename, dep_info):
     done = {}
     printer = DotBackend(filename[:-4], rankdir = "LR")
     printer.emit('URL="." node[shape="box"]')
-    for modname, dependencies in dep_info.items():
+    for modname, dependencies in sorted(dep_info.iteritems()):
         done[modname] = 1
         printer.emit_node(modname)
         for modname in dependencies:
             if modname not in done:
                 done[modname] = 1
                 printer.emit_node(modname)
-    for depmodname, dependencies in dep_info.items():
+    for depmodname, dependencies in sorted(dep_info.iteritems()):
         for modname in dependencies:
             printer.emit_edge(modname, depmodname)
     printer.generate(filename)
@@ -128,24 +134,32 @@ def make_graph(filename, dep_info, sect, gtype):
 
 MSGS = {
     'F0401': ('Unable to import %s',
+              'import-error',
               'Used when pylint has been unable to import a module.'),
     'R0401': ('Cyclic import (%s)',
+              'cyclic-import',
               'Used when a cyclic import between two or more modules is \
               detected.'),
 
     'W0401': ('Wildcard import %s',
+              'wildcard-import',
               'Used when `from module import *` is detected.'),
     'W0402': ('Uses of a deprecated module %r',
+              'deprecated-module',
               'Used a module marked as deprecated is imported.'),
     'W0403': ('Relative import %r, should be %r',
+              'relative-import',
               'Used when an import relative to the package directory is \
               detected.'),
     'W0404': ('Reimport %r (imported line %s)',
+              'reimported',
               'Used when a module is reimported multiple times.'),
     'W0406': ('Module import itself',
+              'import-self',
               'Used when a module is importing itself.'),
 
     'W0410': ('__future__ import is not the first non docstring statement',
+              'misplaced-future',
               'Python 2.5 and greater require __future__ import to be the \
               first non docstring statement in the module.'),
     }
@@ -311,7 +325,7 @@ given file (report RP0402 must not be disabled)'}
             if mod_path == mod_name or mod_path.startswith(mod_name + '.'):
                 self.add_message('W0402', node=node, args=mod_path)
 
-    def _check_reimport(self, node, name, basename=None, level=0):
+    def _check_reimport(self, node, name, basename=None, level=None):
         """check if the import is necessary (i.e. not already done)"""
         if 'W0404' not in self.active_msgs:
             return
@@ -319,7 +333,7 @@ given file (report RP0402 must not be disabled)'}
         root = node.root()
         contexts = [(frame, level)]
         if root is not frame:
-            contexts.append((root, 0))
+            contexts.append((root, None))
         for context, level in contexts:
             first = get_first_import(node, context, name, basename, level)
             if first is not None:
@@ -329,7 +343,7 @@ given file (report RP0402 must not be disabled)'}
 
     def report_external_dependencies(self, sect, _, dummy):
         """return a verbatim layout for displaying dependencies"""
-        dep_info = make_tree_defs(self._external_dependencies_info().items())
+        dep_info = make_tree_defs(self._external_dependencies_info().iteritems())
         if not dep_info:
             raise EmptyReport()
         tree_str = repr_tree_defs(dep_info)

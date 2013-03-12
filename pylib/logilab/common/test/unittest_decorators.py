@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2013 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -17,6 +17,7 @@
 # with logilab-common.  If not, see <http://www.gnu.org/licenses/>.
 """unit tests for the decorators module
 """
+import sys
 import types
 
 from logilab.common.testlib import TestCase, unittest_main
@@ -34,28 +35,37 @@ class DecoratorsTC(TestCase):
             @monkeypatch(MyClass)
             def meth2(self):
                 return 12
-        self.assertTrue(isinstance(MyClass.meth1, types.MethodType))
-        self.assertTrue(isinstance(MyClass.meth2, types.MethodType))
+        if sys.version_info < (3, 0):
+            self.assertIsInstance(MyClass.meth1, types.MethodType)
+            self.assertIsInstance(MyClass.meth2, types.MethodType)
+        else:
+            # with python3, unbound method are functions
+            self.assertIsInstance(MyClass.meth1, types.FunctionType)
+            self.assertIsInstance(MyClass.meth2, types.FunctionType)
+        self.assertEqual(MyClass().meth1(), 12)
+        self.assertEqual(MyClass().meth2(), 12)
 
-    def test_monkeypatch_callable_non_callable(self):
-        tester = self
+    def test_monkeypatch_property(self):
         class MyClass: pass
         @monkeypatch(MyClass, methodname='prop1')
         @property
         def meth1(self):
             return 12
-        class XXX(object):
-            def __call__(self, other):
-                tester.assertTrue(isinstance(other, MyClass))
-                return 12
-        try:
-            monkeypatch(MyClass)(XXX())
-        except AttributeError, err:
-            self.assertTrue(str(err).endswith('has no __name__ attribute: you should provide an explicit `methodname`'))
-        monkeypatch(MyClass, 'foo')(XXX())
-        self.assertTrue(isinstance(MyClass.prop1, property))
-        self.assertTrue(callable(MyClass.foo))
+        self.assertIsInstance(MyClass.prop1, property)
         self.assertEqual(MyClass().prop1, 12)
+
+    def test_monkeypatch_arbitrary_callable(self):
+        class MyClass: pass
+        class ArbitraryCallable(object):
+            def __call__(self):
+                return 12
+        # ensure it complains about missing __name__
+        with self.assertRaises(AttributeError) as cm:
+            monkeypatch(MyClass)(ArbitraryCallable())
+        self.assertTrue(str(cm.exception).endswith('has no __name__ attribute: you should provide an explicit `methodname`'))
+        # ensure no black magic under the hood
+        monkeypatch(MyClass, 'foo')(ArbitraryCallable())
+        self.assertTrue(callable(MyClass.foo))
         self.assertEqual(MyClass().foo(), 12)
 
     def test_monkeypatch_with_same_name(self):
@@ -177,9 +187,9 @@ class DecoratorsTC(TestCase):
 
         foo = Foo()
         self.assertEqual(Foo.x, 0)
-        self.failIf('bar' in foo.__dict__)
+        self.assertFalse('bar' in foo.__dict__)
         self.assertEqual(foo.bar, 1)
-        self.failUnless('bar' in foo.__dict__)
+        self.assertTrue('bar' in foo.__dict__)
         self.assertEqual(foo.bar, 1)
         self.assertEqual(foo.quux, 42)
         self.assertEqual(Foo.bar.__doc__,

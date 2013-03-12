@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 #
 # This file is part of logilab-common.
@@ -15,6 +15,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public License along
 # with logilab-common.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import with_statement
+
 from os.path import join, dirname
 from cStringIO import StringIO
 
@@ -30,7 +32,8 @@ class ChangeLogTC(TestCase):
         cl = self.cl_class(self.cl_file)
         out = StringIO()
         cl.write(out)
-        self.assertStreamEquals(open(self.cl_file), out)
+        with open(self.cl_file) as stream:
+            self.assertMultiLineEqual(stream.read(), out.getvalue())
 
 
 if __name__ == '__main__':
