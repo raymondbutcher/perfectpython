@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!DOCTYPE overlay PUBLIC "-//MOZILLA//DTD XUL V1.0//EN" "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" [
+  <!ENTITY % komodoDTD SYSTEM "chrome://komodo/locale/komodo.dtd">
+  %komodoDTD;
+]>
+
+<overlay id="perfectPythonToolbarOverlay"
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+    <script src="chrome://perfectpython/content/button.js" type="application/x-javascript"/>
+
+    <toolboxrow id="main-toolboxrow">
+        <toolbar
+            xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+            id="perfectPythonToolbar"
+            class="chromeclass-toolbar custom-toolbar"
+            buttonstyle="pictures"
+            customizable="true"
+            mode="icons"
+            ordinal="200">
+            <toolbaritem kohidden="true" class="no-children">
+                <toolbarbutton
+                    buttonstyle="pictures"
+                    oncommand="ko.commands.doCommandAsync('cmd_nextLintResult', event);"
+                    image="chrome://famfamfamsilk/skin/icons/accept.png"
+                    tooltiptext="Syntax Checking Status"
+                    id="perfectPythonToolbarButton"/>
+            </toolbaritem>
+        </toolbar>
+    </toolboxrow>
+
+</overlay>

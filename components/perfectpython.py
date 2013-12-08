@@ -16,22 +16,26 @@ LOG = logging.getLogger('perfectpython')
 class PerfectPythonLinter(object):
 
     _com_interfaces_ = [components.interfaces.koILinter]
-    _reg_clsid_ = "{e89c9a62-689d-2045-9210-24524bf8727c}"
-    _reg_contractid_ = "@rbutcher.com/perfectpython;1"
-    _reg_desc_ = "Perfect Python Komodo Extension"
+    _reg_clsid_ = '{e89c9a62-689d-2045-9210-24524bf8727c}'
+    _reg_contractid_ = '@rbutcher.com/perfectpython;1'
+    _reg_desc_ = 'Perfect Python Komodo Extension'
     _reg_categories_ = [
-        ("category-komodo-linter", 'Python'),
+        ('category-komodo-linter', 'Python'),
     ]
 
     checker_classes = (Pep8Checker, PyflakesChecker, PylintChecker)
 
     def __init__(self):
-        app_info = components.classes['@activestate.com/koAppInfoEx?app=Python;1']
-        self._python = app_info.createInstance(components.interfaces.koIAppInfoEx)
+        self._python = (
+            components
+            .classes['@activestate.com/koAppInfoEx?app=Python;1']
+            .createInstance(components.interfaces.koIAppInfoEx)
+        )
 
     def lint(self, request):
         text = request.content.encode(request.encoding.python_encoding_name)
-        return self.lint_with_text(request, text)
+        results = self.lint_with_text(request, text)
+        return results
 
     def lint_with_text(self, request, text):
 
@@ -77,5 +81,3 @@ class PerfectPythonLinter(object):
 
         finally:
             os.unlink(temp_file.name)
-
-        return results

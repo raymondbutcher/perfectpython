@@ -48,7 +48,7 @@
     "});", 
     ""
   ], 
-  "version": "1.0.11", 
+  "version": "1.0.12", 
   "async": "0", 
   "type": "macro", 
   "icon": "chrome://famfamfamsilk/skin/icons/lightning_go.png"
