@@ -34,8 +34,7 @@ class PerfectPythonLinter(object):
 
     def lint(self, request):
         text = request.content.encode(request.encoding.python_encoding_name)
-        results = self.lint_with_text(request, text)
-        return results
+        return self.lint_with_text(request, text)
 
     def lint_with_text(self, request, text):
 
@@ -81,3 +80,5 @@ class PerfectPythonLinter(object):
 
         finally:
             os.unlink(temp_file.name)
+
+        return results
